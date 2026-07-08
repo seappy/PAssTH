@@ -23,6 +23,9 @@ FROM node:20-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+# Bind to all interfaces — Next standalone otherwise listens on localhost only,
+# which the Railway/Docker proxy can't reach (results in 502).
+ENV HOSTNAME=0.0.0.0
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
