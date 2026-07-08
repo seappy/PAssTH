@@ -10,6 +10,7 @@ export const SCREEN_TITLES: Record<number, string> = {
   5: "주문 완료",
   6: "픽업 진행",
   7: "설정",
+  8: "이용 후기",
 };
 
 export const carColorDefs: CarColor[] = [

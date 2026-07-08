@@ -111,11 +111,22 @@ export async function placeDriverOrder(storeId: string, input: CreateOrderInput)
   return { id: order.id, orderNo: order.orderNo, storeId };
 }
 
+/** Save the driver's post-pickup rating (1~5) + optional one-line review. */
+export async function submitFeedback(orderId: string, rating: number, reviewText?: string) {
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) return null;
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { rating, reviewText: reviewText?.trim() || null },
+  });
+  return { id: orderId, rating };
+}
+
 /** Public order lookup for the pickup-tracking screen (by order id). */
 export async function getDriverOrder(id: string) {
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: { orderBy: { id: "asc" } } },
+    include: { items: { orderBy: { id: "asc" } }, store: { select: { name: true, lat: true, lng: true } } },
   });
   if (!order) return null;
   return {
@@ -125,6 +136,11 @@ export async function getDriverOrder(id: string) {
     prepMinutes: order.prepMinutes,
     etaSeconds: order.etaSeconds,
     totalPrice: order.totalPrice,
+    // Store location for the driver map + distance/ETA calc.
+    store: order.store,
+    // Last status change — used to estimate the ready time on the driver side
+    // (accepted/preparing → updatedAt + prepMinutes).
+    updatedAt: order.updatedAt,
     car: {
       number: order.carNumber,
       color: order.carColor,

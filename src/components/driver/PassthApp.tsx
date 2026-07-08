@@ -13,6 +13,7 @@ import ConfirmScreen from "./screens/ConfirmScreen";
 import DoneScreen from "./screens/DoneScreen";
 import PickupScreen from "./screens/PickupScreen";
 import SettingsScreen from "./screens/SettingsScreen";
+import FeedbackScreen from "./screens/FeedbackScreen";
 
 /**
  * Shell for the driver infotainment client. All state/actions live in
@@ -69,6 +70,7 @@ export default function PassthApp() {
                 {screen === 5 && <DoneScreen />}
                 {screen === 6 && <PickupScreen />}
                 {screen === 7 && <SettingsScreen />}
+                {screen === 8 && <FeedbackScreen />}
               </div>
 
               {voiceOpen && <VoicePanel onClose={() => toggleVoice(false)} />}

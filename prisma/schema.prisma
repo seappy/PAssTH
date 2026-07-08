@@ -120,6 +120,8 @@ model Order {
   custLat      Float?
   custLng      Float?
   totalPrice   Int         @default(0)
+  rating       Int? // 픽업 후 운전자 평가 (1~5)
+  reviewText   String? // 픽업 후 한줄평
   items        OrderItem[]
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt

@@ -6,6 +6,7 @@ import {
   getStoreMenu,
   listStoresForDriver,
   placeDriverOrder,
+  submitFeedback,
 } from "@/server/services/driver.service";
 
 // Driver (in-car) client API. PUBLIC — the car display has no merchant session.
@@ -75,4 +76,18 @@ export const driverRouter = router({
     if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "주문을 찾을 수 없습니다." });
     return order;
   }),
+
+  submitFeedback: publicProcedure
+    .input(
+      z.object({
+        orderId: z.string(),
+        rating: z.number().int().min(1).max(5),
+        reviewText: z.string().max(200).optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const result = await submitFeedback(input.orderId, input.rating, input.reviewText);
+      if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "주문을 찾을 수 없습니다." });
+      return result;
+    }),
 });

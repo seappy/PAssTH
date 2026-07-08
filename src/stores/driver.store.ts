@@ -98,7 +98,10 @@ export const useDriverStore = create<DriverState>()(
       // ---- navigation ----
       goto: (screen) => set({ screen }),
       back: () =>
-        set((s) => ({ screen: s.screen === 7 ? 1 : (Math.max(1, s.screen - 1) as ScreenId) })),
+        set((s) => ({
+          // settings(7) & feedback(8) are leaf screens → back returns home
+          screen: s.screen >= 7 ? 1 : (Math.max(1, s.screen - 1) as ScreenId),
+        })),
       goHome: () => set({ screen: 1 }),
 
       // ---- voice panel ----

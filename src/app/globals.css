@@ -159,3 +159,14 @@ body {
     opacity: 1;
   }
 }
+
+/* Gentle call-to-action glow (e.g. the "픽업 완료" button) */
+@keyframes pxcta {
+  0%,
+  100% {
+    box-shadow: 0 10px 24px rgba(49, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 12px 30px rgba(49, 130, 246, 0.6);
+  }
+}

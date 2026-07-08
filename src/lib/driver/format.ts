@@ -1,5 +1,30 @@
 /** Display helpers for the driver client. */
 
+/**
+ * Demo driver position (~3km NE of the Pangyo store) used when no live GPS is
+ * available. In a real car this comes from the head unit's location.
+ */
+export const DRIVER_ORIGIN = { lat: 37.4147, lng: 127.1312 };
+const AVG_SPEED_MPS = 8.3; // ~30 km/h city driving
+
+export function haversineMeters(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number },
+): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const s =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.min(1, Math.sqrt(s))));
+}
+
+export function drivingEtaSeconds(distanceM: number): number {
+  return Math.round(distanceM / AVG_SPEED_MPS);
+}
+
 export function formatWon(n: number): string {
   return n.toLocaleString("ko-KR");
 }
@@ -14,6 +39,20 @@ export function formatEta(seconds: number | null): string {
   if (seconds == null) return "-";
   const min = Math.max(1, Math.round(seconds / 60));
   return `${min}분`;
+}
+
+/** Wall-clock "HH:MM" for a timestamp (ms). */
+export function formatClock(ms: number): string {
+  const d = new Date(ms);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Remaining time "M:SS" (clamped at 0:00). */
+export function formatCountdown(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000));
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 export function congestionLabel(level: "low" | "mid" | "high"): { text: string; color: string } {
