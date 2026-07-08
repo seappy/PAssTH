@@ -7,9 +7,9 @@ const prisma = new PrismaClient();
 const OWNER_EMAIL = "owner@pleos.dev";
 const OWNER_PASSWORD = "pleos1234";
 
-// Gangnam-ish anchor for the live map.
-const STORE_LAT = 37.4979;
-const STORE_LNG = 127.0276;
+// Pangyo Station-area café anchor for the live map.
+const STORE_LAT = 37.3947;
+const STORE_LNG = 127.1112;
 
 async function main() {
   console.log("🌱 Seeding Pleos Pickup Merchant…");
@@ -29,7 +29,7 @@ async function main() {
   const store = await prisma.store.create({
     data: {
       ownerId: owner.id,
-      name: "강남 1호점",
+      name: "판교 1호점",
       isOpen: true,
       pickupOn: true,
       congestion: "mid",

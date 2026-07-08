@@ -45,8 +45,8 @@ export async function createFakeOrder(storeId: string) {
 
   const distanceM = randInt(80, 900);
   const etaSeconds = Math.round((distanceM / 500) * 60) + randInt(30, 120); // ~2s/m-ish
-  const lat = store.lat ?? 37.4979;
-  const lng = store.lng ?? 127.0276;
+  const lat = store.lat ?? 37.3947;
+  const lng = store.lng ?? 127.1112;
 
   return createOrder(storeId, {
     items,

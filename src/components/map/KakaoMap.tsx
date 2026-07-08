@@ -26,7 +26,7 @@ declare global {
 }
 
 const SCRIPT_ID = "kakao-map-sdk";
-const DEFAULT = { lat: 37.4979, lng: 127.0276 }; // Gangnam fallback
+const DEFAULT = { lat: 37.3947, lng: 127.1112 }; // Pangyo fallback
 
 const storeBadge = () => {
   const el = document.createElement("div");
