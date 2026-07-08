@@ -11,6 +11,7 @@ import type { OrderDTO } from "@/lib/trpc/types";
 export default function MapPage() {
   const router = useRouter();
   const ordersQ = trpc.order.list.useQuery();
+  const storeQ = trpc.store.get.useQuery();
   const orders: OrderDTO[] = ordersQ.data ?? [];
 
   const active = orders
@@ -22,7 +23,16 @@ export default function MapPage() {
       <BackHeader title="실시간 도착 현황" fallbackHref="/home" />
 
       <div className="flex-1 min-h-0 overflow-y-auto pl-scroll px-5 pt-4 pb-6 bg-canvas">
-        <LiveMap orders={active.map((o) => ({ id: o.id, distanceM: o.distanceM }))} />
+        <LiveMap
+          store={storeQ.data ? { lat: storeQ.data.lat, lng: storeQ.data.lng } : null}
+          orders={active.map((o) => ({
+            id: o.id,
+            orderNo: o.orderNo,
+            distanceM: o.distanceM,
+            custLat: o.custLat,
+            custLng: o.custLng,
+          }))}
+        />
 
         <div className="font-bold text-base mx-0.5 mb-2.5">거리순 주문</div>
         <div className="flex flex-col gap-2.5">
