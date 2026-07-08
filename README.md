@@ -1,9 +1,20 @@
-# Pleos Pickup — 사장님(Merchant) 웹앱
+# Pleos Pickup — 하나의 서버, 두 개의 클라이언트
 
-픽업(차량) 주문 매장의 사장님이 실시간으로 주문을 받고 처리하는 풀스택 웹앱입니다.
-Toss 스타일의 모바일 UI(프로토타입 `Pleos Pickup Merchant.dc.html`)를 프로덕션 수준으로
-구현했습니다. **핵심은 실시간 주문 수신** — 별도의 고객/주문 앱이 넣은 주문이 사장님
-화면에 리로드 없이 즉시 표시됩니다.
+픽업(차량) 주문 플랫폼입니다. **하나의 백엔드(tRPC · Prisma · Auth.js · SSE)** 위에
+두 개의 클라이언트가 올라갑니다.
+
+| 클라이언트 | 경로 | 대상 | 설명 |
+| --- | --- | --- | --- |
+| **사장님(Merchant)** | `/home`·`/orders`·`/menu`·`/store`·`/map` | 매장 사장님(모바일) | 실시간 주문 수신·처리 |
+| **운전자(Driver) 인포테인먼트** | `/drive` | 차량 인포테인먼트(1280×720) | 가는 길에 미리 주문 |
+
+**핵심은 실시간 주문 수신** — 운전자(또는 별도 고객/주문 앱)가 넣은 주문이 사장님
+화면에 리로드 없이 즉시 표시됩니다. 두 클라이언트는 동일한 tRPC/Prisma 타입과
+SSE 실시간 파이프라인을 공유하므로, 운전자 앱이 지금의 목업 데이터를 실제 주문 API로
+바꾸면 그대로 사장님 화면과 연결됩니다.
+
+Toss 스타일 UI를 프로덕션 수준으로 구현했습니다(사장님 프로토타입
+`Pleos Pickup Merchant.dc.html`, 운전자 인포테인먼트는 `passth-web` 프로토타입에서 포팅).
 
 ## 기술 스택
 
@@ -18,9 +29,16 @@ Toss 스타일의 모바일 UI(프로토타입 `Pleos Pickup Merchant.dc.html`)�
 
 ## 화면
 
+### 사장님(Merchant) — `src/app/(owner)`
 홈(통계·실시간 도착·신규/진행/최근 주문) · 주문 목록(상태 필터) · 주문 상세(큰 ETA·차량·
 상품·상태 진행 CTA) · 메뉴 관리(분류 필터/추가·삭제, CRUD, 품절 토글, FAB) · 매장 관리
 (영업·픽업·혼잡도·영업시간·정기휴무) · 실시간 도착 지도 · 차량 도착 알림 오버레이.
+
+### 운전자(Driver) 인포테인먼트 — `src/app/(driver)/drive`
+차량 디스플레이용 1280×720 캔버스(뷰포트에 맞춰 자동 스케일). 홈(경로 주변 추천·최근 주문)
+· 가는 길에 주문(경로순 매장) · 메뉴/옵션 · 주문 확인/결제(Pleos Pay) · 주문 완료(ETA 전달)
+· 픽업 진행(지도·남은 시간·상태 진행) · 설정(차량 정보·즐겨찾기) · GLEO 음성 주문 패널.
+현재는 목업 데이터 기반 프로토타입이며, 사장님 앱과 같은 tRPC API에 연결할 준비가 돼 있습니다.
 
 ## 로컬 실행
 
@@ -47,7 +65,12 @@ npm run db:seed           # 사장님/매장/분류3/메뉴6/주문5 시딩
 npm run dev               # http://localhost:3000
 ```
 
-### 데모 로그인
+### 접속
+
+- **사장님(Merchant)**: http://localhost:3000 → 로그인 후 `/home`
+- **운전자(Driver) 인포테인먼트**: http://localhost:3000/drive (로그인 불필요)
+
+### 데모 로그인 (사장님)
 
 ```
 이메일   owner@pleos.dev
@@ -112,12 +135,25 @@ new ──accept──▶ accepted ──advance──▶ preparing ──advanc
 ```
 prisma/              schema.prisma · seed.ts
 src/
-  app/               (auth)/login · (owner)/{home,orders,menu,store,map} · api/*
-  server/            db · auth · trpc · events · services/* · routers/*
-  components/        PhoneFrame·BottomNav·Toggle·OrderCard·MenuCard·ArrivalAlert 등
-  lib/               trpc client/provider · format · hooks · useLiveClock
+  app/
+    (auth)/login              사장님 로그인
+    (owner)/{home,orders,menu,store,map}   ← 사장님 클라이언트
+    (driver)/drive            ← 운전자 인포테인먼트 클라이언트
+    api/*                     trpc · events(SSE) · ingest · auth  (두 클라이언트 공용 서버)
+  server/            db · auth · trpc · events · services/* · routers/*   (공용 백엔드)
+  components/
+    (사장님)          PhoneFrame·BottomNav·Toggle·OrderCard·MenuCard·ArrivalAlert 등
+    driver/           PassthApp·NavRail·TopBar·VoicePanel·Icons·Placeholder·screens/*
+  lib/
+    (사장님)          trpc client/provider · format · hooks · useLiveClock
+    driver/           types · mockData · useFitScale
   stores/            ui.store (Zustand)
+public/assets/       gleo-icon.png (운전자 GLEO 음성비서 아이콘)
 ```
+
+두 클라이언트는 `src/server/*`(tRPC·Prisma·Auth·SSE)와 `src/app/api/*`를 공유합니다.
+운전자 UI 코드는 `src/components/driver/`·`src/lib/driver/`로 네임스페이스를 분리해
+사장님 코드와 섞이지 않습니다.
 
 ## 배포 참고 (Vercel + Supabase/Neon)
 
