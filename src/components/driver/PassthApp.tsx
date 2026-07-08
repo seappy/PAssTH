@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useFitScale } from "@/lib/driver/useFitScale";
-import type { Prefs, ScreenId } from "@/lib/driver/types";
 import { SCREEN_TITLES } from "@/lib/driver/mockData";
+import { useDriverStore } from "@/stores/driver.store";
 import NavRail from "./NavRail";
 import TopBar from "./TopBar";
 import VoicePanel from "./VoicePanel";
@@ -15,18 +14,35 @@ import DoneScreen from "./screens/DoneScreen";
 import PickupScreen from "./screens/PickupScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 
+/**
+ * Shell for the driver infotainment client. All state and actions live in
+ * `useDriverStore` so touch and voice share one action layer — this component
+ * just subscribes and maps store actions onto the (unchanged) screen props.
+ */
 export default function PassthApp() {
   const scale = useFitScale();
-  const [screen, setScreen] = useState<ScreenId>(1);
-  const [voiceOpen, setVoiceOpen] = useState(false);
-  const [qty, setQty] = useState(2);
-  const [selMenu, setSelMenu] = useState(0);
-  const [carColor, setCarColor] = useState(4);
-  const [prefs, setPrefs] = useState<Prefs>({ autoEta: true, pleosPay: true, voiceGuide: false });
 
-  const toggleVoice = () => setVoiceOpen((v) => !v);
-  const togglePref = (key: keyof Prefs) => setPrefs((p) => ({ ...p, [key]: !p[key] }));
-  const back = () => setScreen(screen === 7 ? 1 : (Math.max(1, screen - 1) as ScreenId));
+  const screen = useDriverStore((s) => s.screen);
+  const voiceOpen = useDriverStore((s) => s.voiceOpen);
+  const selMenu = useDriverStore((s) => s.selMenu);
+  const qty = useDriverStore((s) => s.qty);
+  const carColor = useDriverStore((s) => s.carColor);
+  const prefs = useDriverStore((s) => s.prefs);
+
+  const {
+    goto,
+    back,
+    toggleVoice,
+    selectStore,
+    selectMenu,
+    incQty,
+    decQty,
+    reviewOrder,
+    placeOrder,
+    goToPickup,
+    pickColor,
+    togglePref,
+  } = useDriverStore.getState();
 
   return (
     <div
@@ -56,7 +72,7 @@ export default function PassthApp() {
             position: "relative",
           }}
         >
-          <NavRail screen={screen} onNavigate={setScreen} onToggleVoice={toggleVoice} />
+          <NavRail screen={screen} onNavigate={goto} onToggleVoice={toggleVoice} />
 
           <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
             <TopBar title={SCREEN_TITLES[screen]} showBack={screen !== 1} onBack={back} />
@@ -64,28 +80,28 @@ export default function PassthApp() {
             <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
               <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
                 {screen === 1 && (
-                  <HomeScreen onToStores={() => setScreen(2)} onToggleVoice={toggleVoice} onToMenu={() => setScreen(3)} />
+                  <HomeScreen onToStores={() => goto(2)} onToggleVoice={toggleVoice} onToMenu={() => goto(3)} />
                 )}
-                {screen === 2 && <StoresScreen onSelectStore={() => setScreen(3)} />}
+                {screen === 2 && <StoresScreen onSelectStore={selectStore} />}
                 {screen === 3 && (
                   <MenuScreen
                     selMenu={selMenu}
-                    onSelectMenu={setSelMenu}
+                    onSelectMenu={selectMenu}
                     qty={qty}
-                    onIncQty={() => setQty((q) => q + 1)}
-                    onDecQty={() => setQty((q) => Math.max(1, q - 1))}
-                    onToConfirm={() => setScreen(4)}
+                    onIncQty={incQty}
+                    onDecQty={decQty}
+                    onToConfirm={reviewOrder}
                   />
                 )}
-                {screen === 4 && <ConfirmScreen onToDone={() => setScreen(5)} />}
-                {screen === 5 && <DoneScreen onToPickup={() => setScreen(6)} />}
+                {screen === 4 && <ConfirmScreen onToDone={placeOrder} />}
+                {screen === 5 && <DoneScreen onToPickup={goToPickup} />}
                 {screen === 6 && <PickupScreen />}
                 {screen === 7 && (
-                  <SettingsScreen carColor={carColor} onPickColor={setCarColor} prefs={prefs} onTogglePref={togglePref} />
+                  <SettingsScreen carColor={carColor} onPickColor={pickColor} prefs={prefs} onTogglePref={togglePref} />
                 )}
               </div>
 
-              {voiceOpen && <VoicePanel onClose={toggleVoice} />}
+              {voiceOpen && <VoicePanel onClose={() => toggleVoice(false)} />}
             </div>
           </div>
         </div>

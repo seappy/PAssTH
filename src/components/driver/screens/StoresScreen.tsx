@@ -5,7 +5,7 @@ import { routeStores } from "@/lib/driver/mockData";
 
 const categories = ["전체", "카페", "베이커리", "음식"];
 
-export default function StoresScreen({ onSelectStore }: { onSelectStore: () => void }) {
+export default function StoresScreen({ onSelectStore }: { onSelectStore: (index: number) => void }) {
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "22px 28px" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
@@ -29,7 +29,7 @@ export default function StoresScreen({ onSelectStore }: { onSelectStore: () => v
         {routeStores.map((s, i) => (
           <div
             key={i}
-            onClick={onSelectStore}
+            onClick={() => onSelectStore(i)}
             style={{ background: "#fff", border: "1px solid #EDF0F3", borderRadius: 18, overflow: "hidden", cursor: "pointer", boxShadow: "0 3px 12px rgba(20,40,80,.04)", display: "flex", flexDirection: "column" }}
           >
             <div

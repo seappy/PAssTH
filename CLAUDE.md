@@ -51,14 +51,31 @@ public/assets/gleo-icon.png       ← 운전자 GLEO 음성비서 아이콘
 - 전역 스타일 `src/app/globals.css`는 **공용**입니다. 운전자용 항목은 파일 하단
   "Driver … client" 주석 블록(`.num`, `pxpulse/pxblink/pxring/pxpop` 키프레임)에 모아뒀습니다.
 
+## 운전자 상태·행동 계층 (음성/터치 공용)
+
+운전자 앱의 모든 상태와 동작은 **`src/stores/driver.store.ts`(Zustand)** 한 곳에 있습니다.
+컴포넌트는 이 스토어를 구독하고 행동 메서드를 호출할 뿐, 자체 `useState`를 두지 않습니다.
+→ **터치와 음성이 같은 행동 함수를 공유**합니다. UI 동작을 추가할 땐 여기 메서드부터 추가.
+
+**음성 제어 연결 지점: `src/lib/driver/voice/`** (상세: 같은 폴더의 `README.md`)
+- AI/STT 담당자는 `engines.ts`의 3개 인터페이스(`SttEngine`/`TtsEngine`/`IntentParser`)만
+  구현하고, 최종 문장을 `runVoiceTurn()`에 넘기면 됩니다. **UI/스토어는 건드리지 않습니다.**
+- 음성 명령은 `DriverCommand`(`commands.ts`) 구조로 표현되고 `executeDriverCommand`가
+  스토어 행동으로 실행합니다. `getVoiceContext()`가 NLU에 현재 화면·매장·메뉴를 제공합니다.
+- 새 음성 동작 추가 순서: store에 행동 메서드 → `DriverCommand` 변형 → `executeDriverCommand`
+  스위치에 연결(누락 시 컴파일 에러).
+
 ## 현재 상태 & 다음 작업
 
 - 운전자 인포테인먼트(`/drive`)는 **목업 데이터 기반 프로토타입**입니다
   (`src/lib/driver/mockData.ts`). 실제 서버 연동은 아직 안 돼 있습니다.
-- 다음 단계: 운전자 주문 흐름(메뉴→확인→결제→완료)을 **사장님과 동일한 tRPC/ingest API**에
-  연결 → 운전자가 넣은 주문이 SSE로 사장님 화면에 실시간 반영되게 하기.
+- 다음 단계 ①(음성): `src/lib/driver/voice/`의 엔진 3종 구현 + `POST /api/voice/intent`
+  (LLM tool-use) 추가. 스토어/커맨드 계층은 이미 준비됨.
+- 다음 단계 ②(실서버): 운전자 주문 흐름(메뉴→확인→결제→완료)을 **사장님과 동일한
+  tRPC/ingest API**에 연결 → 운전자가 넣은 주문이 SSE로 사장님 화면에 실시간 반영.
   참고 진입점: `src/app/api/ingest/orders/route.ts`, `src/server/routers/order.ts`,
   `src/server/events.ts`, 사장님 쪽 실시간 수신 `src/components/RealtimeBridge.tsx`.
+  (연동 시 `getVoiceContext()` 내부의 목업을 라이브 쿼리로 교체.)
 
 ## 로컬 실행
 

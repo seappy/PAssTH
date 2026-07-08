@@ -1,9 +1,10 @@
 "use client";
 
-import { chatMessages } from "@/lib/driver/mockData";
+import { useDriverStore } from "@/stores/driver.store";
 import { CloseIcon, MicIcon } from "./Icons";
 
 export default function VoicePanel({ onClose }: { onClose: () => void }) {
+  const messages = useDriverStore((s) => s.messages);
   return (
     <div
       style={{
@@ -45,8 +46,8 @@ export default function VoicePanel({ onClose }: { onClose: () => void }) {
       </div>
 
       <div style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 12 }}>
-        {chatMessages.map((msg, i) =>
-          msg.ai ? (
+        {messages.map((msg, i) =>
+          msg.role === "assistant" ? (
             <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start", maxWidth: "92%" }}>
               <div
                 style={{
