@@ -28,7 +28,12 @@ function bus(): EventEmitter {
 function listener(): Promise<Client> {
   if (g.__pleosListenerP) return g.__pleosListenerP;
   g.__pleosListenerP = (async () => {
-    const client = new Client({ connectionString: process.env.DATABASE_URL });
+    // LISTEN/NOTIFY needs a direct (session) connection — a transaction pooler
+    // like Supabase's pgBouncer does not support it. Prefer DIRECT_URL; fall
+    // back to DATABASE_URL for local Docker (where they're the same).
+    const client = new Client({
+      connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL,
+    });
     client.on("notification", (msg) => {
       if (!msg.payload) return;
       try {

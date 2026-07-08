@@ -4,8 +4,14 @@
 // OAuth/email providers are introduced.
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // App runtime connection. Prod (Supabase): the POOLED url (transaction pooler,
+  // port 6543, add ?pgbouncer=true). Local: the Docker Postgres.
+  url       = env("DATABASE_URL")
+  // Direct/session connection used by migrations. Prod (Supabase): the DIRECT
+  // url (port 5432). Local: same as DATABASE_URL. The realtime LISTEN/NOTIFY in
+  // src/server/events.ts also connects via this (pgBouncer can't do LISTEN).
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {
