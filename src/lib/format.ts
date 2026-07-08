@@ -9,6 +9,26 @@ export const fmtEta = (sec: number) => (sec <= 0 ? "도착" : Math.ceil(sec / 60
 /** Metres → "150m" / "도착". */
 export const fmtDist = (m: number) => (m > 0 ? `${m}m` : "도착");
 
+/**
+ * Live-decrement a snapshot ETA by the time elapsed since it was fetched, so
+ * countdowns tick smoothly between server refetches (cosmetic).
+ */
+export function liveEta(baseSeconds: number, fetchedAt: number, now: number): number {
+  const elapsed = Math.floor((now - fetchedAt) / 1000);
+  return Math.max(0, baseSeconds - elapsed);
+}
+
+/** Urgent when arriving within 5 minutes (and still en route). */
+export function isUrgent(status: string, etaSeconds: number): boolean {
+  return status !== "done" && status !== "rejected" && etaSeconds > 0 && etaSeconds <= 300;
+}
+
+/** Date → "오전 9:12". */
+export function fmtTime(d: Date | string): string {
+  const date = typeof d === "string" ? new Date(d) : d;
+  return date.toLocaleTimeString("ko-KR", { hour: "numeric", minute: "2-digit" });
+}
+
 export type StatusMeta = { label: string; color: string; bg: string };
 
 export const STATUS_META: Record<OrderStatus, StatusMeta> = {
@@ -41,3 +61,21 @@ export const CONGESTION_META = {
 } as const;
 
 export const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** "아메리카노 외 1개" / "콜드브루 1개" — order line summary from items. */
+export function menuSummary(
+  items: { nameSnap: string; quantity: number }[],
+): string {
+  if (items.length === 0) return "";
+  const first = items[0];
+  if (items.length === 1) return `${first.nameSnap} ${first.quantity}개`;
+  return `${first.nameSnap} 외 ${items.length - 1}개`;
+}
+
+/** "흰색 쏘렌토" — colour + model. */
+export function carLine(o: {
+  carColor?: string | null;
+  carModel?: string | null;
+}): string {
+  return [o.carColor, o.carModel].filter(Boolean).join(" ");
+}
