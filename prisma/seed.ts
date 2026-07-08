@@ -14,20 +14,17 @@ const STORE_LNG = 127.0276;
 async function main() {
   console.log("🌱 Seeding Pleos Pickup Merchant…");
 
-  // Idempotent: wipe domain data (cascades) and the demo owner.
-  await prisma.order.deleteMany();
-  await prisma.menu.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.store.deleteMany();
-  await prisma.user.deleteMany({ where: { email: OWNER_EMAIL } });
-
-  const owner = await prisma.user.create({
-    data: {
-      email: OWNER_EMAIL,
-      name: "김사장",
-      passwordHash: await bcrypt.hash(OWNER_PASSWORD, 10),
-    },
+  // Upsert the owner so its id stays stable across reseeds — this keeps any
+  // existing login session valid. Store/menus/orders are recreated fresh.
+  const passwordHash = await bcrypt.hash(OWNER_PASSWORD, 10);
+  const owner = await prisma.user.upsert({
+    where: { email: OWNER_EMAIL },
+    update: { passwordHash, name: "김사장" },
+    create: { email: OWNER_EMAIL, name: "김사장", passwordHash },
   });
+
+  // Wipe this owner's stores (cascades categories/menus/orders/items).
+  await prisma.store.deleteMany({ where: { ownerId: owner.id } });
 
   const store = await prisma.store.create({
     data: {
