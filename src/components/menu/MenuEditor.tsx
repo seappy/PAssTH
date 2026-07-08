@@ -23,6 +23,8 @@ export function MenuEditor({ menuId }: { menuId?: string }) {
   const [categoryId, setCategoryId] = useState("");
   const [soldOut, setSoldOut] = useState(false);
   const [options, setOptions] = useState<OptionDraft[]>([]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +34,7 @@ export function MenuEditor({ menuId }: { menuId?: string }) {
       setName(menuQ.data.name);
       setPrice(String(menuQ.data.price));
       setCategoryId(menuQ.data.categoryId);
+      setImageUrl(menuQ.data.imageUrl ?? null);
       setSoldOut(menuQ.data.soldOut);
       setOptions(
         menuQ.data.options.map((o) => ({ name: o.name, extraPrice: o.extraPrice })),
@@ -66,9 +69,32 @@ export function MenuEditor({ menuId }: { menuId?: string }) {
       .map((o) => ({ name: o.name.trim(), extraPrice: Number(o.extraPrice) || 0 }));
 
     if (isEdit) {
-      updateM.mutate({ id: menuId!, name: name.trim(), price: priceNum, categoryId, soldOut, options: cleanOptions });
+      updateM.mutate({ id: menuId!, name: name.trim(), price: priceNum, categoryId, imageUrl, soldOut, options: cleanOptions });
     } else {
-      createM.mutate({ name: name.trim(), price: priceNum, categoryId, soldOut, options: cleanOptions });
+      createM.mutate({ name: name.trim(), price: priceNum, categoryId, imageUrl: imageUrl ?? undefined, soldOut, options: cleanOptions });
+    }
+  };
+
+  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/menu/upload", { method: "POST", body: fd });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setError(data.error ?? "사진 업로드에 실패했어요.");
+        return;
+      }
+      setImageUrl(data.url);
+    } catch {
+      setError("사진 업로드 중 오류가 발생했어요.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -83,10 +109,43 @@ export function MenuEditor({ menuId }: { menuId?: string }) {
       <BackHeader title={isEdit ? "메뉴 수정" : "메뉴 추가"} fallbackHref="/menu" />
 
       <div className="flex-1 min-h-0 overflow-y-auto pl-scroll px-5 pt-4 pb-5 bg-canvas">
-        {/* photo placeholder */}
-        <div className="pl-stripe h-[120px] rounded-2xl bg-[#eef1f4] flex flex-col items-center justify-center gap-1.5 text-ink-3 font-semibold mb-[18px]">
-          <IconImage size={26} />
-          <span className="text-[13px]">사진 추가</span>
+        {/* photo picker */}
+        <div className="relative h-[120px] mb-[18px]">
+          <label
+            className={`${imageUrl ? "" : "pl-stripe"} absolute inset-0 rounded-2xl bg-[#eef1f4] flex flex-col items-center justify-center gap-1.5 text-ink-3 font-semibold cursor-pointer overflow-hidden`}
+          >
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="메뉴 사진" className="w-full h-full object-cover" />
+            ) : (
+              <>
+                <IconImage size={26} />
+                <span className="text-[13px]">{uploading ? "업로드 중…" : "사진 추가"}</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickFile}
+              disabled={uploading}
+            />
+          </label>
+          {uploading ? (
+            <div className="absolute inset-0 rounded-2xl bg-black/30 flex items-center justify-center text-white text-[13px] font-semibold">
+              업로드 중…
+            </div>
+          ) : null}
+          {imageUrl && !uploading ? (
+            <button
+              type="button"
+              onClick={() => setImageUrl(null)}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/55 text-white text-sm flex items-center justify-center"
+              aria-label="사진 삭제"
+            >
+              ✕
+            </button>
+          ) : null}
         </div>
 
         {/* name */}

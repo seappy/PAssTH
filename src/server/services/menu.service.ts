@@ -36,6 +36,7 @@ export async function createMenu(
     name: string;
     price: number;
     categoryId: string;
+    imageUrl?: string | null;
     soldOut?: boolean;
     options?: MenuOptionInput[];
   },
@@ -51,6 +52,7 @@ export async function createMenu(
       categoryId: input.categoryId,
       name: input.name,
       price: input.price,
+      imageUrl: input.imageUrl ?? null,
       soldOut: input.soldOut ?? false,
       sortOrder: (max._max.sortOrder ?? 0) + 1,
       options: {
@@ -72,6 +74,7 @@ export async function updateMenu(
     name?: string;
     price?: number;
     categoryId?: string;
+    imageUrl?: string | null;
     soldOut?: boolean;
     options?: MenuOptionInput[];
   },
@@ -90,6 +93,7 @@ export async function updateMenu(
         ...(input.name != null ? { name: input.name } : {}),
         ...(input.price != null ? { price: input.price } : {}),
         ...(input.categoryId != null ? { categoryId: input.categoryId } : {}),
+        ...(input.imageUrl !== undefined ? { imageUrl: input.imageUrl } : {}),
         ...(input.soldOut != null ? { soldOut: input.soldOut } : {}),
         ...(input.options
           ? {

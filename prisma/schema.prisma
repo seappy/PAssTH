@@ -84,6 +84,7 @@ model Menu {
   category   Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   name       String
   price      Int // KRW
+  imageUrl   String? // Supabase Storage public URL (menu photo)
   soldOut    Boolean      @default(false)
   sortOrder  Int          @default(0)
   options    MenuOption[]

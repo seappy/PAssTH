@@ -20,9 +20,18 @@ export function MenuCard({ menu }: { menu: MenuDTO }) {
         onClick={() => router.push(`/menu/${menu.id}/edit`)}
         className="flex-1 min-w-0 flex items-center gap-3.5 text-left"
       >
-        <div className="pl-stripe w-14 h-14 rounded-[14px] flex-none flex items-center justify-center text-[10px] text-ink-4 font-semibold bg-[#f2f4f6]">
-          사진
-        </div>
+        {menu.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={menu.imageUrl}
+            alt={menu.name}
+            className="w-14 h-14 rounded-[14px] flex-none object-cover bg-[#f2f4f6]"
+          />
+        ) : (
+          <div className="pl-stripe w-14 h-14 rounded-[14px] flex-none flex items-center justify-center text-[10px] text-ink-4 font-semibold bg-[#f2f4f6]">
+            사진
+          </div>
+        )}
         <div className="flex-1 min-w-0">
           <div
             className="font-bold text-base truncate"
