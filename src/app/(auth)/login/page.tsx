@@ -36,8 +36,8 @@ export default function LoginPage() {
           >
             <IconStore size={32} />
           </div>
-          <h1 className="font-extrabold text-2xl text-ink">Pleos Pickup</h1>
-          <p className="text-ink-3 font-semibold text-sm mt-1">사장님 매장 관리</p>
+          <h1 className="font-extrabold text-2xl text-ink">PAssTH</h1>
+          <p className="text-ink-3 font-semibold text-sm mt-1">매장 관리 앱</p>
         </div>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3">

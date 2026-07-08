@@ -3,8 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Pleos Pickup · 사장님",
-  description: "픽업 주문 매장 관리 — 실시간 주문 수신",
+  title: "PAssTH · 매장 관리 앱",
+  description: "PAssTH 매장 관리 앱 — 실시간 픽업 주문 수신·처리",
 };
 
 export const viewport: Viewport = {
