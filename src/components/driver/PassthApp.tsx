@@ -1,7 +1,7 @@
 "use client";
 
 import { useFitScale } from "@/lib/driver/useFitScale";
-import { SCREEN_TITLES } from "@/lib/driver/mockData";
+import { SCREEN_TITLES } from "@/lib/driver/config";
 import { useDriverStore } from "@/stores/driver.store";
 import NavRail from "./NavRail";
 import TopBar from "./TopBar";
@@ -15,34 +15,17 @@ import PickupScreen from "./screens/PickupScreen";
 import SettingsScreen from "./screens/SettingsScreen";
 
 /**
- * Shell for the driver infotainment client. All state and actions live in
- * `useDriverStore` so touch and voice share one action layer — this component
- * just subscribes and maps store actions onto the (unchanged) screen props.
+ * Shell for the driver infotainment client. All state/actions live in
+ * `useDriverStore`; each screen self-fetches its data via `trpc.driver.*` and
+ * dispatches store actions, so touch and voice share one action layer.
  */
 export default function PassthApp() {
   const scale = useFitScale();
-
   const screen = useDriverStore((s) => s.screen);
   const voiceOpen = useDriverStore((s) => s.voiceOpen);
-  const selMenu = useDriverStore((s) => s.selMenu);
-  const qty = useDriverStore((s) => s.qty);
-  const carColor = useDriverStore((s) => s.carColor);
-  const prefs = useDriverStore((s) => s.prefs);
-
-  const {
-    goto,
-    back,
-    toggleVoice,
-    selectStore,
-    selectMenu,
-    incQty,
-    decQty,
-    reviewOrder,
-    placeOrder,
-    goToPickup,
-    pickColor,
-    togglePref,
-  } = useDriverStore.getState();
+  const goto = useDriverStore((s) => s.goto);
+  const back = useDriverStore((s) => s.back);
+  const toggleVoice = useDriverStore((s) => s.toggleVoice);
 
   return (
     <div
@@ -79,26 +62,13 @@ export default function PassthApp() {
 
             <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
               <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
-                {screen === 1 && (
-                  <HomeScreen onToStores={() => goto(2)} onToggleVoice={toggleVoice} onToMenu={() => goto(3)} />
-                )}
-                {screen === 2 && <StoresScreen onSelectStore={selectStore} />}
-                {screen === 3 && (
-                  <MenuScreen
-                    selMenu={selMenu}
-                    onSelectMenu={selectMenu}
-                    qty={qty}
-                    onIncQty={incQty}
-                    onDecQty={decQty}
-                    onToConfirm={reviewOrder}
-                  />
-                )}
-                {screen === 4 && <ConfirmScreen onToDone={placeOrder} />}
-                {screen === 5 && <DoneScreen onToPickup={goToPickup} />}
+                {screen === 1 && <HomeScreen />}
+                {screen === 2 && <StoresScreen />}
+                {screen === 3 && <MenuScreen />}
+                {screen === 4 && <ConfirmScreen />}
+                {screen === 5 && <DoneScreen />}
                 {screen === 6 && <PickupScreen />}
-                {screen === 7 && (
-                  <SettingsScreen carColor={carColor} onPickColor={pickColor} prefs={prefs} onTogglePref={togglePref} />
-                )}
+                {screen === 7 && <SettingsScreen />}
               </div>
 
               {voiceOpen && <VoicePanel onClose={() => toggleVoice(false)} />}

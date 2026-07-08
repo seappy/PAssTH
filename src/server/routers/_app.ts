@@ -4,6 +4,7 @@ import { menuRouter } from "./menu";
 import { categoryRouter } from "./category";
 import { storeRouter } from "./store";
 import { simRouter } from "./sim";
+import { driverRouter } from "./driver";
 
 export const appRouter = router({
   order: orderRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   category: categoryRouter,
   store: storeRouter,
   sim: simRouter,
+  driver: driverRouter,
 });
 
 export type AppRouter = typeof appRouter;

@@ -1,43 +1,55 @@
-import { menuItems, routeStores, SCREEN_TITLES } from "@/lib/driver/mockData";
+import { driverApi } from "@/lib/driver/api";
 import { useDriverStore } from "@/stores/driver.store";
 
 /**
- * A snapshot of everything the intent parser needs to turn free-form speech
- * into concrete `DriverCommand`s — e.g. resolve "스타벅스" to a store index, or
- * "아메리카노" to a menu index. Feed this to the LLM prompt as grounding context.
- *
- * NOTE: stores/menu are currently mock data (`src/lib/driver/mockData.ts`).
- * When the driver flow is wired to the real tRPC API, source these lists from
- * the live query instead — the shape stays the same.
+ * A live snapshot the intent parser needs to turn speech into concrete
+ * `DriverCommand`s — resolve "스타벅스" to a storeId, or "아메리카노" to a menu
+ * item (id + price). Fetches real data from the driver API, grounded on the
+ * current screen/cart. Async because the catalog is server-backed now.
  */
 export interface VoiceContext {
   screen: number;
-  screenTitle: string;
-  selectedStore: number | null;
-  qty: number;
-  stores: { index: number; name: string; category: string; eta: string; open: boolean }[];
-  menu: { index: number; name: string; description: string; price: string }[];
+  selectedStoreId: string | null;
+  cart: { name: string; qty: number; optionsText?: string }[];
+  stores: { id: string; name: string; open: boolean; etaSeconds: number | null }[];
+  menu: {
+    category: string;
+    id: string;
+    name: string;
+    price: number;
+    soldOut: boolean;
+    options: { name: string; extraPrice: number }[];
+  }[];
 }
 
-export function getVoiceContext(): VoiceContext {
+export async function getVoiceContext(): Promise<VoiceContext> {
   const s = useDriverStore.getState();
+
+  const stores = await driverApi.driver.stores.query(s.driverLoc ?? undefined);
+
+  let menu: VoiceContext["menu"] = [];
+  if (s.selectedStoreId) {
+    const data = await driverApi.driver.storeMenu.query({
+      storeId: s.selectedStoreId,
+      origin: s.driverLoc ?? undefined,
+    });
+    menu = data.categories.flatMap((c) =>
+      c.menus.map((m) => ({
+        category: c.name,
+        id: m.id,
+        name: m.name,
+        price: m.price,
+        soldOut: m.soldOut,
+        options: m.options.map((o) => ({ name: o.name, extraPrice: o.extraPrice })),
+      })),
+    );
+  }
+
   return {
     screen: s.screen,
-    screenTitle: SCREEN_TITLES[s.screen] ?? "",
-    selectedStore: s.selectedStore,
-    qty: s.qty,
-    stores: routeStores.map((st, index) => ({
-      index,
-      name: st.name,
-      category: st.cat,
-      eta: st.eta,
-      open: st.open,
-    })),
-    menu: menuItems.map((m, index) => ({
-      index,
-      name: m.name,
-      description: m.desc,
-      price: m.price,
-    })),
+    selectedStoreId: s.selectedStoreId,
+    cart: s.cart.map((l) => ({ name: l.name, qty: l.qty, optionsText: l.optionsText })),
+    stores: stores.map((st) => ({ id: st.id, name: st.name, open: st.open, etaSeconds: st.etaSeconds })),
+    menu,
   };
 }

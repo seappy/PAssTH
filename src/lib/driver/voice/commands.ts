@@ -1,29 +1,29 @@
-import type { Prefs, ScreenId } from "@/lib/driver/types";
+import type { CartLine, Prefs, ScreenId } from "@/lib/driver/types";
 import { useDriverStore, type AssistantMessage } from "@/stores/driver.store";
 
 /**
  * DriverCommand — the contract between the voice pipeline and the app.
  *
  * The AI/STT layer (built separately) turns a spoken sentence into one or more
- * of these structured commands, then calls `executeDriverCommand` for each.
- * It never touches React components or the store directly — this union is the
- * ONLY surface it needs. Each variant maps 1:1 to a store action, which makes it
- * a natural fit for LLM tool/function-calling (one tool per command variant).
+ * of these structured commands, then calls `executeDriverCommand` for each. It
+ * never touches React or the store directly — this union is the only surface it
+ * needs, and each variant maps 1:1 to a store action (a natural fit for LLM
+ * tool/function-calling).
  *
- * Example: "샷 추가한 아메리카노 두 잔 담아줘" →
- *   [ { type: "selectMenu", index: 0 },
- *     { type: "setQuantity", qty: 2 },
+ * Names/prices for `addItem` must be resolved from `getVoiceContext()` (the live
+ * store menu) by the parser — e.g. "아메리카노 두 잔" →
+ *   [ { type: "addItem", line: { menuId, name:"아메리카노", unitPrice:4500, qty:2 } },
  *     { type: "reviewOrder" } ]
  */
 export type DriverCommand =
   | { type: "navigate"; target: ScreenId | "home" | "back" }
   | { type: "openVoice" }
   | { type: "closeVoice" }
-  | { type: "selectStore"; index: number }
-  | { type: "selectMenu"; index: number }
-  | { type: "setQuantity"; qty: number }
-  | { type: "incQuantity" }
-  | { type: "decQuantity" }
+  | { type: "selectStore"; storeId: string }
+  | { type: "addItem"; line: CartLine }
+  | { type: "setLineQty"; index: number; qty: number }
+  | { type: "removeLine"; index: number }
+  | { type: "clearCart" }
   | { type: "reviewOrder" }
   | { type: "placeOrder" }
   | { type: "goToPickup" }
@@ -34,7 +34,9 @@ export type DriverCommand =
 
 /**
  * Execute a single command against the driver store. Safe to call from outside
- * React (uses `getState()`), e.g. from a voice orchestrator.
+ * React (uses `getState()`), e.g. from a voice orchestrator. `placeOrder` runs
+ * asynchronously (creates a real order); await it via the store if you need the
+ * result before speaking a confirmation.
  */
 export function executeDriverCommand(cmd: DriverCommand): void {
   const s = useDriverStore.getState();
@@ -51,25 +53,25 @@ export function executeDriverCommand(cmd: DriverCommand): void {
       s.toggleVoice(false);
       return;
     case "selectStore":
-      s.selectStore(cmd.index);
+      s.selectStore(cmd.storeId);
       return;
-    case "selectMenu":
-      s.selectMenu(cmd.index);
+    case "addItem":
+      s.addToCart(cmd.line);
       return;
-    case "setQuantity":
-      s.setQty(cmd.qty);
+    case "setLineQty":
+      s.setLineQty(cmd.index, cmd.qty);
       return;
-    case "incQuantity":
-      s.incQty();
+    case "removeLine":
+      s.removeLine(cmd.index);
       return;
-    case "decQuantity":
-      s.decQty();
+    case "clearCart":
+      s.clearCart();
       return;
     case "reviewOrder":
       s.reviewOrder();
       return;
     case "placeOrder":
-      s.placeOrder();
+      void s.placeOrder();
       return;
     case "goToPickup":
       s.goToPickup();
@@ -84,8 +86,8 @@ export function executeDriverCommand(cmd: DriverCommand): void {
       s.pushMessage({ role: "assistant", text: cmd.text } satisfies AssistantMessage);
       return;
     default: {
-      // Exhaustiveness guard: adding a command variant without handling it here
-      // becomes a compile error.
+      // Exhaustiveness guard: a new command variant without a handler is a
+      // compile error.
       const _never: never = cmd;
       return _never;
     }

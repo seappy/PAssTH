@@ -51,31 +51,39 @@ public/assets/gleo-icon.png       ← 운전자 GLEO 음성비서 아이콘
 - 전역 스타일 `src/app/globals.css`는 **공용**입니다. 운전자용 항목은 파일 하단
   "Driver … client" 주석 블록(`.num`, `pxpulse/pxblink/pxring/pxpop` 키프레임)에 모아뒀습니다.
 
-## 운전자 상태·행동 계층 (음성/터치 공용)
+## 운전자 데이터·상태·행동 계층 (음성/터치 공용)
 
-운전자 앱의 모든 상태와 동작은 **`src/stores/driver.store.ts`(Zustand)** 한 곳에 있습니다.
-컴포넌트는 이 스토어를 구독하고 행동 메서드를 호출할 뿐, 자체 `useState`를 두지 않습니다.
-→ **터치와 음성이 같은 행동 함수를 공유**합니다. UI 동작을 추가할 땐 여기 메서드부터 추가.
+운전자 앱은 이제 **실데이터 연동**입니다 (목업 없음).
+
+- **읽기**: `trpc.driver.*` (공개 라우터 `src/server/routers/driver.ts` → `driver.service.ts`).
+  화면 컴포넌트가 `trpc.driver.stores` / `trpc.driver.storeMenu` / `trpc.driver.order`를
+  직접 쿼리합니다. 매장 거리·ETA는 좌표로 계산, 영업시간은 매장 필드에서 도출.
+- **쓰기(주문)**: `src/stores/driver.store.ts`의 `placeOrder()`가 바닐라 tRPC 클라이언트
+  (`src/lib/driver/api.ts`)로 `driver.createOrder`를 호출 → 사장님과 동일한 `createOrder`
+  서비스 → `notify()`로 **사장님 화면에 실시간 표시**. (검증: 운전자 결제 → `#A-###` 생성 →
+  `/orders`에 신규 주문으로 노출.)
+- **상태/행동**: 모든 상태·동작은 `driver.store.ts` 한 곳. 컴포넌트는 구독+행동 호출만.
+  → **터치와 음성이 같은 행동 함수를 공유** (`selectStore`·`addToCart`·`reviewOrder`·
+  `placeOrder` 등). UI 동작 추가 시 여기 메서드부터.
+- 운전자 API는 **공개(publicProcedure)** — 차량엔 사장님 세션이 없음. 프로덕션 전
+  차량/사용자 신원 + rate limit로 하드닝 필요(`driver.ts` 주석 참고).
 
 **음성 제어 연결 지점: `src/lib/driver/voice/`** (상세: 같은 폴더의 `README.md`)
 - AI/STT 담당자는 `engines.ts`의 3개 인터페이스(`SttEngine`/`TtsEngine`/`IntentParser`)만
   구현하고, 최종 문장을 `runVoiceTurn()`에 넘기면 됩니다. **UI/스토어는 건드리지 않습니다.**
-- 음성 명령은 `DriverCommand`(`commands.ts`) 구조로 표현되고 `executeDriverCommand`가
-  스토어 행동으로 실행합니다. `getVoiceContext()`가 NLU에 현재 화면·매장·메뉴를 제공합니다.
+- 음성 명령은 `DriverCommand`(`commands.ts`) 구조 → `executeDriverCommand`가 스토어 행동으로
+  실행. `getVoiceContext()`는 **라이브 매장/메뉴**를 async로 제공(이름→ID/가격 해석용).
 - 새 음성 동작 추가 순서: store에 행동 메서드 → `DriverCommand` 변형 → `executeDriverCommand`
   스위치에 연결(누락 시 컴파일 에러).
 
-## 현재 상태 & 다음 작업
+## 다음 작업
 
-- 운전자 인포테인먼트(`/drive`)는 **목업 데이터 기반 프로토타입**입니다
-  (`src/lib/driver/mockData.ts`). 실제 서버 연동은 아직 안 돼 있습니다.
-- 다음 단계 ①(음성): `src/lib/driver/voice/`의 엔진 3종 구현 + `POST /api/voice/intent`
-  (LLM tool-use) 추가. 스토어/커맨드 계층은 이미 준비됨.
-- 다음 단계 ②(실서버): 운전자 주문 흐름(메뉴→확인→결제→완료)을 **사장님과 동일한
-  tRPC/ingest API**에 연결 → 운전자가 넣은 주문이 SSE로 사장님 화면에 실시간 반영.
-  참고 진입점: `src/app/api/ingest/orders/route.ts`, `src/server/routers/order.ts`,
-  `src/server/events.ts`, 사장님 쪽 실시간 수신 `src/components/RealtimeBridge.tsx`.
-  (연동 시 `getVoiceContext()` 내부의 목업을 라이브 쿼리로 교체.)
+- **음성 구현**: `src/lib/driver/voice/`의 엔진 3종 구현 + `POST /api/voice/intent`
+  (LLM tool-use, command 변형당 tool 1개). 스토어/커맨드/컨텍스트 계층은 이미 준비됨.
+- **매장 다양화**(선택): 시드에 매장 2~3개 추가하면 "가는 길에" 목록이 풍부해집니다
+  (현재 판교 1호점 1곳). 사장님은 `storeProcedure`가 첫 매장을 쓰므로 영향 없음.
+- **운전자 실시간 상태**: 픽업 화면은 현재 4초 폴링(`trpc.driver.order` refetchInterval).
+  원하면 SSE(주문별)로 승격 가능.
 
 ## 로컬 실행
 

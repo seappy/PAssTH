@@ -48,12 +48,21 @@ stt.onResult(async ({ transcript, isFinal }) => {
 
 ## 명령 목록 (`commands.ts`의 `DriverCommand`)
 
-`navigate` · `openVoice` / `closeVoice` · `selectStore` · `selectMenu` ·
-`setQuantity` / `incQuantity` / `decQuantity` · `reviewOrder` · `placeOrder` ·
-`goToPickup` · `setCarColor` · `togglePref` · `say`
+`navigate` · `openVoice` / `closeVoice` · `selectStore(storeId)` ·
+`addItem(line)` · `setLineQty(index,qty)` / `removeLine(index)` / `clearCart` ·
+`reviewOrder` · `placeOrder` · `goToPickup` · `setCarColor(index)` ·
+`togglePref(key)` · `say(text)`
 
-예) "샷 추가한 아메리카노 두 잔 담아줘" →
-`[{selectMenu:0},{setQuantity:2},{reviewOrder:true},{say:"아메리카노 2잔, 결제할까요?"}]`
+- `addItem`의 `line`은 **`getVoiceContext()`의 라이브 메뉴에서 이름→menuId/가격을 해석**해
+  채웁니다: `{ menuId, name, unitPrice, qty, optionsText? }`.
+- `selectStore`/`placeOrder`도 실데이터 기반 — 스토어 선택은 storeId, 결제는 실제 주문 생성.
+
+예) "샷 추가한 아메리카노 두 잔 담아줘" (아메리카노 menuId=`m1`, 4500 + 샷 500) →
+```
+[ { type:"addItem", line:{ menuId:"m1", name:"아메리카노", unitPrice:5000, qty:2, optionsText:"샷 추가" } },
+  { type:"reviewOrder" },
+  { type:"say", text:"샷 추가 아메리카노 2잔, 10,000원. 결제할까요?" } ]
+```
 
 ## 규칙
 

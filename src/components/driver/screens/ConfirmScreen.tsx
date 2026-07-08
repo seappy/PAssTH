@@ -1,24 +1,42 @@
 "use client";
 
-import Placeholder from "@/components/driver/Placeholder";
-import { CarIcon, CardIcon, ChevronRightIcon, ClockIcon } from "@/components/driver/Icons";
-import { cart } from "@/lib/driver/mockData";
+import { useDriverStore } from "@/stores/driver.store";
+import { formatWon } from "@/lib/driver/format";
+import { CarIcon, CardIcon, ChevronRightIcon, MinusIcon, PlusIcon } from "@/components/driver/Icons";
 
-export default function ConfirmScreen({ onToDone }: { onToDone: () => void }) {
+export default function ConfirmScreen() {
+  const cart = useDriverStore((s) => s.cart);
+  const car = useDriverStore((s) => s.car);
+  const memo = useDriverStore((s) => s.memo);
+  const placing = useDriverStore((s) => s.placing);
+  const orderError = useDriverStore((s) => s.orderError);
+  const setLineQty = useDriverStore((s) => s.setLineQty);
+  const placeOrder = useDriverStore((s) => s.placeOrder);
+
+  const total = cart.reduce((s, l) => s + l.unitPrice * l.qty, 0);
+
   return (
     <div style={{ height: "100%", display: "flex", gap: 20, padding: "22px 28px" }}>
       <div style={{ flex: 1.28, minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 12 }}>주문 상품</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, overflow: "auto", minHeight: 0 }} className="pl-scroll">
+          {cart.length === 0 && <div style={{ color: "#8B95A1", fontSize: 15 }}>장바구니가 비어 있어요.</div>}
           {cart.map((c, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "15px 18px", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}>
-              <Placeholder size={52} borderRadius={12} />
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 19, fontWeight: 700, color: "#191F28" }}>{c.name}</div>
-                <div style={{ fontSize: 14, color: "#8B95A1" }}>{c.opt}</div>
+                <div style={{ fontSize: 14, color: "#8B95A1" }}>{c.optionsText ?? "옵션 없음"}</div>
               </div>
-              <div className="num" style={{ fontSize: 15, color: "#8B95A1", fontWeight: 600 }}>×{c.qty}</div>
-              <div className="num" style={{ fontSize: 19, fontWeight: 700, color: "#191F28", minWidth: 82, textAlign: "right" }}>{c.price}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div onClick={() => setLineQty(i, c.qty - 1)} style={qtyBtn}>
+                  <MinusIcon size={18} />
+                </div>
+                <span className="num" style={{ fontSize: 17, fontWeight: 700, color: "#191F28", width: 22, textAlign: "center" }}>{c.qty}</span>
+                <div onClick={() => setLineQty(i, c.qty + 1)} style={qtyBtn}>
+                  <PlusIcon size={18} />
+                </div>
+              </div>
+              <div className="num" style={{ fontSize: 19, fontWeight: 700, color: "#191F28", minWidth: 90, textAlign: "right" }}>{formatWon(c.unitPrice * c.qty)}</div>
             </div>
           ))}
         </div>
@@ -27,19 +45,14 @@ export default function ConfirmScreen({ onToDone }: { onToDone: () => void }) {
           <div style={{ flex: 1, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "16px 20px", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
               <CarIcon />
-              <span style={{ fontSize: 13, color: "#8B95A1", fontWeight: 600 }}>차량 번호</span>
+              <span style={{ fontSize: 13, color: "#8B95A1", fontWeight: 600 }}>차량</span>
             </div>
-            <div className="num" style={{ fontSize: 26, fontWeight: 800, color: "#191F28", letterSpacing: ".02em" }}>12가 3456</div>
+            <div className="num" style={{ fontSize: 24, fontWeight: 800, color: "#191F28", letterSpacing: ".02em" }}>{car.number}</div>
+            <div style={{ fontSize: 14, color: "#8B95A1", marginTop: 2 }}>{car.color} {car.model}</div>
           </div>
           <div style={{ flex: 1.2, background: "#EAF2FF", borderRadius: 16, padding: "16px 20px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 10 }}>
-              <ClockIcon color="#3182F6" />
-              <span style={{ fontSize: 13, color: "#3182F6", fontWeight: 700 }}>ETA 자동 전달</span>
-            </div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#191F28" }}>
-              도착 <span className="num">14:47</span> <span style={{ fontSize: 15, color: "#4E5968", fontWeight: 600 }}>· 12분 후</span>
-            </div>
-            <div style={{ fontSize: 13, color: "#4E7BC0", marginTop: 4, fontWeight: 500 }}>도착 시간에 맞춰 매장이 준비를 시작해요</div>
+            <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 700, marginBottom: 8 }}>픽업 요청사항</div>
+            <div style={{ fontSize: 15, color: "#191F28", fontWeight: 500, lineHeight: 1.4 }}>{memo || "요청사항 없음"}</div>
           </div>
         </div>
       </div>
@@ -49,7 +62,7 @@ export default function ConfirmScreen({ onToDone }: { onToDone: () => void }) {
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#B0B8C1", fontWeight: 600, letterSpacing: ".05em", marginBottom: 18 }}>PAYMENT</div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, color: "#4E5968", marginBottom: 12 }}>
           <span>상품 금액</span>
-          <span className="num" style={{ fontWeight: 600 }}>14,200원</span>
+          <span className="num" style={{ fontWeight: 600 }}>{formatWon(total)}원</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 16, color: "#4E5968", marginBottom: 16, paddingBottom: 16, borderBottom: "1px solid #F2F4F6" }}>
           <span>픽업 수수료</span>
@@ -57,8 +70,15 @@ export default function ConfirmScreen({ onToDone }: { onToDone: () => void }) {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "auto" }}>
           <span style={{ fontSize: 18, fontWeight: 700, color: "#191F28" }}>총 결제금액</span>
-          <span className="num" style={{ fontSize: 28, fontWeight: 800, color: "#3182F6" }}>14,200원</span>
+          <span className="num" style={{ fontSize: 28, fontWeight: 800, color: "#3182F6" }}>{formatWon(total)}원</span>
         </div>
+
+        {orderError && (
+          <div style={{ background: "#FFF0F0", color: "#E03131", borderRadius: 12, padding: "12px 16px", fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
+            {orderError}
+          </div>
+        )}
+
         <div style={{ display: "flex", alignItems: "center", gap: 12, background: "#F7F8FA", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
           <div style={{ width: 42, height: 30, borderRadius: 7, background: "linear-gradient(135deg,#2B2F36,#454B54)" }} />
           <div style={{ flex: 1 }}>
@@ -68,13 +88,38 @@ export default function ConfirmScreen({ onToDone }: { onToDone: () => void }) {
           <ChevronRightIcon />
         </div>
         <div
-          onClick={onToDone}
-          style={{ height: 74, borderRadius: 16, background: "#3182F6", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 22, fontWeight: 800, cursor: "pointer", boxShadow: "0 10px 26px rgba(49,130,246,.32)" }}
+          onClick={() => !placing && cart.length > 0 && placeOrder()}
+          style={{
+            height: 74,
+            borderRadius: 16,
+            background: !placing && cart.length > 0 ? "#3182F6" : "#C4CBD3",
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            fontSize: 22,
+            fontWeight: 800,
+            cursor: !placing && cart.length > 0 ? "pointer" : "default",
+            boxShadow: !placing && cart.length > 0 ? "0 10px 26px rgba(49,130,246,.32)" : "none",
+          }}
         >
           <CardIcon size={24} strokeWidth={2} />
-          Pleos Pay로 결제
+          {placing ? "결제 중…" : "Pleos Pay로 결제"}
         </div>
       </div>
     </div>
   );
 }
+
+const qtyBtn: React.CSSProperties = {
+  width: 34,
+  height: 34,
+  borderRadius: 10,
+  background: "#F2F4F6",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  cursor: "pointer",
+  color: "#4E5968",
+};

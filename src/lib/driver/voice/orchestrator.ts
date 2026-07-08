@@ -23,7 +23,8 @@ export async function runVoiceTurn(
 
   store.pushMessage({ role: "user", text: clean });
 
-  const commands = await deps.parser.parse({ transcript: clean, context: getVoiceContext() });
+  const context = await getVoiceContext();
+  const commands = await deps.parser.parse({ transcript: clean, context });
 
   // Execute first so the UI reflects the result, then read back any spoken
   // confirmations. `say` commands are also appended to the dialog log by

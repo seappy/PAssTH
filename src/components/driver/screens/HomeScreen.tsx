@@ -1,42 +1,30 @@
 "use client";
 
-import Placeholder from "@/components/driver/Placeholder";
+import { trpc } from "@/lib/trpc/client";
+import { useDriverStore } from "@/stores/driver.store";
+import { formatDistance, formatEta } from "@/lib/driver/format";
 import { ArrowRightIcon, ChevronRightIcon, MicIcon, SearchIcon } from "@/components/driver/Icons";
-import { recentOrders, recommendations } from "@/lib/driver/mockData";
 
-const categories = ["전체", "카페", "베이커리", "음식", "편의점"];
+export default function HomeScreen() {
+  const driverLoc = useDriverStore((s) => s.driverLoc);
+  const goto = useDriverStore((s) => s.goto);
+  const toggleVoice = useDriverStore((s) => s.toggleVoice);
+  const selectStore = useDriverStore((s) => s.selectStore);
+  const placedOrder = useDriverStore((s) => s.placedOrder);
 
-export default function HomeScreen({
-  onToStores,
-  onToggleVoice,
-  onToMenu,
-}: {
-  onToStores: () => void;
-  onToggleVoice: () => void;
-  onToMenu: () => void;
-}) {
+  const { data: stores } = trpc.driver.stores.useQuery(driverLoc ?? undefined);
+  const nearby = (stores ?? []).filter((s) => s.open).slice(0, 3);
+
   return (
     <div style={{ height: "100%", display: "flex", gap: 20, padding: "24px 28px" }}>
       {/* LEFT */}
       <div style={{ flex: 1.32, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ height: 56, flex: "0 0 56px", background: "#FFFFFF", border: "1px solid #EDF0F3", borderRadius: 16, display: "flex", alignItems: "center", gap: 12, padding: "0 20px" }}>
+        <div
+          onClick={() => goto(2)}
+          style={{ height: 56, flex: "0 0 56px", background: "#FFFFFF", border: "1px solid #EDF0F3", borderRadius: 16, display: "flex", alignItems: "center", gap: 12, padding: "0 20px", cursor: "pointer" }}
+        >
           <SearchIcon size={21} color="#8B95A1" />
           <span style={{ fontSize: 17, color: "#8B95A1", fontWeight: 500 }}>매장 · 메뉴 검색</span>
-        </div>
-
-        <div style={{ display: "flex", gap: 8, minWidth: 0, overflow: "hidden" }}>
-          {categories.map((cat, i) => (
-            <div
-              key={cat}
-              style={
-                i === 0
-                  ? { padding: "10px 18px", borderRadius: 12, background: "#3182F6", color: "#fff", fontSize: 15, fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }
-                  : { padding: "10px 18px", borderRadius: 12, background: "#fff", border: "1px solid #EDF0F3", color: "#4E5968", fontSize: 15, fontWeight: 600, whiteSpace: "nowrap", flexShrink: 0 }
-              }
-            >
-              {cat}
-            </div>
-          ))}
         </div>
 
         {/* HERO */}
@@ -67,14 +55,14 @@ export default function HomeScreen({
           <div style={{ flex: 1 }} />
           <div style={{ display: "flex", gap: 12, position: "relative" }}>
             <div
-              onClick={onToStores}
+              onClick={() => goto(2)}
               style={{ flex: 1, height: 64, borderRadius: 16, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", boxShadow: "0 8px 20px rgba(0,0,0,.14)" }}
             >
               <span style={{ fontSize: 19, fontWeight: 800, color: "#191F28" }}>주문 시작하기</span>
               <ArrowRightIcon strokeWidth={2.4} />
             </div>
             <div
-              onClick={onToggleVoice}
+              onClick={() => toggleVoice()}
               style={{ width: 64, height: 64, flex: "0 0 64px", borderRadius: 16, background: "rgba(255,255,255,.16)", border: "1.5px solid rgba(255,255,255,.5)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
             >
               <MicIcon />
@@ -85,45 +73,35 @@ export default function HomeScreen({
 
       {/* RIGHT */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 10 }}>최근 주문</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {recentOrders.map((o, i) => (
-              <div
-                key={i}
-                onClick={onToMenu}
-                style={{ display: "flex", alignItems: "center", gap: 14, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "14px 16px", cursor: "pointer", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}
-              >
-                <Placeholder size={48} borderRadius={12} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#191F28" }}>{o.store}</div>
-                  <div style={{ fontSize: 14, color: "#8B95A1", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{o.item}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span className="num" style={{ fontSize: 13, color: "#B0B8C1" }}>{o.time}</span>
-                  <ChevronRightIcon />
-                </div>
-              </div>
-            ))}
+        {placedOrder && (
+          <div
+            onClick={() => goto(6)}
+            style={{ background: "#EAF2FF", borderRadius: 16, padding: "16px 18px", display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }}
+          >
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: "#3182F6", fontWeight: 700 }}>진행 중인 주문</div>
+              <div className="num" style={{ fontSize: 20, fontWeight: 800, color: "#191F28" }}>{placedOrder.orderNo}</div>
+            </div>
+            <ChevronRightIcon color="#3182F6" />
           </div>
-        </div>
+        )}
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 10 }}>경로 주변 추천</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {recommendations.map((r, i) => (
+            {nearby.length === 0 && <div style={{ color: "#B0B8C1", fontSize: 14 }}>주변 매장을 불러오는 중…</div>}
+            {nearby.map((s) => (
               <div
-                key={i}
-                onClick={onToMenu}
-                style={{ display: "flex", alignItems: "center", gap: 14, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "14px 16px", cursor: "pointer", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}
+                key={s.id}
+                onClick={() => selectStore(s.id)}
+                style={{ display: "flex", alignItems: "center", gap: 14, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "16px 18px", cursor: "pointer", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}
               >
-                <Placeholder size={48} borderRadius={12} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#191F28" }}>{r.name}</div>
-                  <div style={{ fontSize: 14, color: "#8B95A1" }}>{r.cat}</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#191F28" }}>{s.name}</div>
+                  <div style={{ fontSize: 14, color: "#8B95A1" }}>경로에서 {formatDistance(s.distanceM)}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#EAF2FF", borderRadius: 10, padding: "7px 12px" }}>
-                  <span className="num" style={{ fontSize: 17, fontWeight: 800, color: "#3182F6" }}>{r.eta}</span>
+                  <span className="num" style={{ fontSize: 17, fontWeight: 800, color: "#3182F6" }}>{formatEta(s.etaSeconds)}</span>
                   <span style={{ fontSize: 11, color: "#3182F6", fontWeight: 600 }}>ETA</span>
                 </div>
               </div>
