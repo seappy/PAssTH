@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MockMap } from "./MockMap";
 
 export type MapOrder = {
   id: string;
@@ -52,6 +53,9 @@ export function KakaoMap({ store, orders }: Props) {
   const router = useRouter();
   const ordersRef = useRef(orders);
   ordersRef.current = orders;
+  // If the SDK can't load (bad key / unregistered domain / blocked), fall back
+  // to the mock map instead of leaving a blank box.
+  const [failed, setFailed] = useState(false);
 
   const center = {
     lat: store?.lat ?? DEFAULT.lat,
@@ -65,65 +69,87 @@ export function KakaoMap({ store, orders }: Props) {
     if (!KEY || !ref.current) return;
     let cancelled = false;
 
+    const fail = () => {
+      if (!cancelled) setFailed(true);
+    };
+    // Backstop: if the SDK never becomes usable, fall back to the mock map.
+    const timeout = setTimeout(fail, 4000);
+
     const render = () => {
       if (cancelled || !ref.current) return;
-      const kakao = window.kakao;
-      const c = new kakao.maps.LatLng(center.lat, center.lng);
-      const map = new kakao.maps.Map(ref.current, { center: c, level: 5 });
-      const bounds = new kakao.maps.LatLngBounds();
-      bounds.extend(c);
+      try {
+        const kakao = window.kakao;
+        const c = new kakao.maps.LatLng(center.lat, center.lng);
+        const map = new kakao.maps.Map(ref.current, { center: c, level: 5 });
+        const bounds = new kakao.maps.LatLngBounds();
+        bounds.extend(c);
 
-      new kakao.maps.CustomOverlay({
-        map,
-        position: c,
-        content: storeBadge(),
-        xAnchor: 0.5,
-        yAnchor: 0.5,
-        zIndex: 5,
-      });
-
-      const list = ordersRef.current;
-      let hasMarkers = false;
-      list.forEach((o, i) => {
-        if (o.custLat == null || o.custLng == null) return;
-        hasMarkers = true;
-        const pos = new kakao.maps.LatLng(o.custLat, o.custLng);
-        bounds.extend(pos);
         new kakao.maps.CustomOverlay({
           map,
-          position: pos,
-          content: carBadge(o, i === 0, () => router.push(`/orders/${o.id}`)),
-          yAnchor: 1,
-          zIndex: i === 0 ? 4 : 3,
+          position: c,
+          content: storeBadge(),
+          xAnchor: 0.5,
+          yAnchor: 0.5,
+          zIndex: 5,
         });
-      });
 
-      if (hasMarkers) map.setBounds(bounds, 40, 40, 40, 40);
+        const list = ordersRef.current;
+        let hasMarkers = false;
+        list.forEach((o, i) => {
+          if (o.custLat == null || o.custLng == null) return;
+          hasMarkers = true;
+          const pos = new kakao.maps.LatLng(o.custLat, o.custLng);
+          bounds.extend(pos);
+          new kakao.maps.CustomOverlay({
+            map,
+            position: pos,
+            content: carBadge(o, i === 0, () => router.push(`/orders/${o.id}`)),
+            yAnchor: 1,
+            zIndex: i === 0 ? 4 : 3,
+          });
+        });
+
+        if (hasMarkers) map.setBounds(bounds, 40, 40, 40, 40);
+        clearTimeout(timeout);
+      } catch {
+        fail();
+      }
     };
 
     if (window.kakao?.maps) {
       window.kakao.maps.load(render);
       return () => {
         cancelled = true;
+        clearTimeout(timeout);
       };
     }
 
     let script = document.getElementById(SCRIPT_ID) as HTMLScriptElement | null;
     const onLoad = () => window.kakao.maps.load(render);
+    const onError = () => fail();
     if (!script) {
       script = document.createElement("script");
       script.id = SCRIPT_ID;
       script.async = true;
       script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KEY}&autoload=false`;
+      script.addEventListener("error", onError);
       document.head.appendChild(script);
+    } else {
+      script.addEventListener("error", onError);
     }
     script.addEventListener("load", onLoad);
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       script?.removeEventListener("load", onLoad);
+      script?.removeEventListener("error", onError);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [center.lat, center.lng, sig, router]);
+
+  if (failed) {
+    return <MockMap orders={orders.map((o) => ({ id: o.id, distanceM: o.distanceM }))} />;
+  }
 
   return (
     <div
