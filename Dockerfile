@@ -16,6 +16,13 @@ COPY . .
 # DATABASE_URL/DIRECT_URL are not needed at build time (no DB access during build),
 # but Prisma Client is generated here from the schema.
 RUN npx prisma generate
+# NEXT_PUBLIC_* values are inlined into the client bundle at build time, so they
+# must be present during `next build`. Railway passes matching service variables
+# as build args when the Dockerfile declares them.
+ARG NEXT_PUBLIC_KAKAO_MAP_KEY
+ARG NEXT_PUBLIC_APP_URL
+ENV NEXT_PUBLIC_KAKAO_MAP_KEY=$NEXT_PUBLIC_KAKAO_MAP_KEY
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 RUN npm run build
 
 # ---- runner: minimal standalone server ----
