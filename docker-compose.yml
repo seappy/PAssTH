@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16
+    container_name: pleos_pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pleos
+      POSTGRES_PASSWORD: pleos
+      POSTGRES_DB: pleos
+    ports:
+      - "5544:5432"
+    volumes:
+      - pleos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pleos -d pleos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pleos_pgdata:

@@ -1,0 +1,134 @@
+// Pleos Pickup Merchant — data model
+// Auth uses Auth.js Credentials provider with JWT sessions, so no adapter
+// tables (Account/Session/VerificationToken) are required. Add them later if
+// OAuth/email providers are introduced.
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Congestion {
+  low
+  mid
+  high
+}
+
+enum OrderStatus {
+  new
+  accepted
+  preparing
+  ready
+  done
+  rejected
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  stores       Store[]
+  createdAt    DateTime @default(now())
+}
+
+model Store {
+  id           String     @id @default(cuid())
+  ownerId      String
+  owner        User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name         String // 강남 1호점
+  isOpen       Boolean    @default(true)
+  pickupOn     Boolean    @default(true)
+  congestion   Congestion @default(mid)
+  weekdayOpen  String     @default("08:00")
+  weekdayClose String     @default("22:00")
+  weekendOpen  String     @default("09:00")
+  weekendClose String     @default("21:00")
+  closedDays   Int[]      @default([1]) // 0=Sun … 6=Sat, 정기휴무
+  lat          Float? // store location (live-map anchor)
+  lng          Float?
+  categories   Category[]
+  menus        Menu[]
+  orders       Order[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Category {
+  id        String @id @default(cuid())
+  storeId   String
+  store     Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String // 커피 / 티 / 디저트
+  sortOrder Int    @default(0)
+  menus     Menu[]
+
+  @@unique([storeId, name])
+  @@index([storeId, sortOrder])
+}
+
+model Menu {
+  id         String       @id @default(cuid())
+  storeId    String
+  store      Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId String
+  category   Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  name       String
+  price      Int // KRW
+  soldOut    Boolean      @default(false)
+  sortOrder  Int          @default(0)
+  options    MenuOption[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([storeId, categoryId, sortOrder])
+}
+
+model MenuOption {
+  id         String @id @default(cuid())
+  menuId     String
+  menu       Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  name       String // 샷 추가
+  extraPrice Int    @default(0)
+  sortOrder  Int    @default(0)
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  storeId      String
+  store        Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orderNo      String // #A-102
+  status       OrderStatus @default(new)
+  customerMemo String?
+  prepMinutes  Int         @default(10)
+  etaSeconds   Int         @default(0) // seconds until customer arrives (live)
+  distanceM    Int         @default(0) // metres to store (live)
+  carNumber    String?
+  carColor     String?
+  carModel     String?
+  carType      String? // SUV / 승용 / 경차
+  custLat      Float?
+  custLng      Float?
+  totalPrice   Int         @default(0)
+  items        OrderItem[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([storeId, orderNo])
+  @@index([storeId, status])
+  @@index([storeId, createdAt])
+}
+
+model OrderItem {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuId      String? // nullable — snapshot survives menu deletion
+  nameSnap    String // menu name at order time
+  priceSnap   Int // unit price at order time
+  quantity    Int     @default(1)
+  optionsText String? // "ICE · 샷 추가" (chosen options snapshot)
+}

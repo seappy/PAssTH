@@ -1,0 +1,105 @@
+@import "tailwindcss";
+@import "pretendard/dist/web/static/pretendard.css";
+
+/* ------------------------------------------------------------------ */
+/* Design tokens — lifted from the Pleos Pickup Merchant prototype.     */
+/* ------------------------------------------------------------------ */
+@theme {
+  --font-sans: "Pretendard", -apple-system, system-ui, sans-serif;
+
+  --color-accent: #3182f6;
+  --color-accent-dark: #1b64da;
+
+  --color-ink: #191f28; /* primary text */
+  --color-ink-2: #4e5968; /* secondary text */
+  --color-ink-3: #8b95a1; /* tertiary text */
+  --color-ink-4: #adb5bd; /* muted text */
+
+  --color-canvas: #f7f8fa; /* screen background */
+  --color-line: #f2f4f6; /* hairline dividers */
+  --color-line-2: #e5e8eb; /* stronger borders */
+
+  --color-status-new: #3182f6;
+  --color-status-new-bg: #eaf2ff;
+  --color-status-accepted: #7048e8;
+  --color-status-accepted-bg: #f0ebff;
+  --color-status-preparing: #e8890c;
+  --color-status-preparing-bg: #fff3e0;
+  --color-status-ready: #0ca678;
+  --color-status-ready-bg: #e3f7ef;
+  --color-status-done: #8b95a1;
+  --color-status-done-bg: #f2f4f6;
+  --color-danger: #f04452;
+
+  --animate-pl-up: plUp 0.3s ease;
+  --animate-pl-fade: plFade 0.25s ease;
+  --animate-pl-pulse: plPulse 1.6s ease infinite;
+}
+
+@keyframes plUp {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes plFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes plPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Base                                                                */
+/* ------------------------------------------------------------------ */
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #e9ecef;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  letter-spacing: -0.02em;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Hidden scrollbars (prototype .pl-scroll) */
+.pl-scroll {
+  scrollbar-width: none;
+}
+.pl-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* Diagonal stripe placeholder (prototype .pl-stripe) */
+.pl-stripe {
+  background-image: repeating-linear-gradient(
+    45deg,
+    #e8ebee 0,
+    #e8ebee 1px,
+    transparent 1px,
+    transparent 8px
+  );
+}
