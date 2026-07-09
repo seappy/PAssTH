@@ -81,6 +81,8 @@ export interface DriverState {
    *  same 완료/픽업 progress screens as touch by seeding `placedOrder`. */
   trackPlacedOrder: (order: PlacedOrder) => void;
   goToPickup: () => void;
+  /** 픽업 후기 화면 — 주문 컨텍스트를 반드시 붙여서 이동 */
+  goToFeedback: (order: PlacedOrder) => void;
   resumeOrder: (order: PlacedOrder) => void;
   clearPlacedOrder: () => void; // 완료 → 픽업 진행
 
@@ -241,6 +243,8 @@ export const useDriverStore = create<DriverState>()(
       trackPlacedOrder: (order) => set({ placedOrder: order, orderError: null, screen: 5 }),
 
       goToPickup: () => set({ screen: 6 }),
+
+      goToFeedback: (order) => set({ placedOrder: order, screen: 8 }),
 
       resumeOrder: (order) => set({ placedOrder: order, screen: 6 }),
 

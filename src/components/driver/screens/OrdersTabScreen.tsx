@@ -69,50 +69,75 @@ export default function OrdersTabScreen() {
   const placedOrder = useDriverStore((s) => s.placedOrder);
   const driverLoc = useDriverStore((s) => s.driverLoc);
   const goto = useDriverStore((s) => s.goto);
+  const goToFeedback = useDriverStore((s) => s.goToFeedback);
   const resetOrder = useDriverStore((s) => s.resetOrder);
   const resumeOrder = useDriverStore((s) => s.resumeOrder);
   const clearPlacedOrder = useDriverStore((s) => s.clearPlacedOrder);
   const reorderFromHistory = useDriverStore((s) => s.reorderFromHistory);
+  const utils = trpc.useUtils();
 
   const { data: orders, isLoading: listLoading } = trpc.driver.orderHistory.useQuery(
     { carNumber },
-    { enabled: !!carNumber.trim() },
+    {
+      enabled: !!carNumber.trim(),
+      // 목록도 주기적으로 갱신 — 방금 넣은 주문·사장님 수락이 왼쪽/오른쪽에 반영되게
+      refetchInterval: 3000,
+    },
   );
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mountTime] = useState(() => Date.now());
 
-  // Keep a valid selection as the list loads / updates.
+  // 방금 결제한 주문은 목록 캐시보다 우선 선택 + 기록 목록 즉시 갱신
   useEffect(() => {
+    if (!placedOrder?.id) return;
+    setSelectedId(placedOrder.id);
+    void utils.driver.orderHistory.invalidate();
+  }, [placedOrder?.id, utils]);
+
+  // 목록 로드 후 유효한 선택 유지 (placedOrder 없을 때만 자동 선택)
+  useEffect(() => {
+    if (placedOrder?.id) return;
     if (!orders?.length) {
       setSelectedId(null);
       return;
     }
     setSelectedId((prev) => {
       if (prev && orders.some((o) => o.id === prev)) return prev;
-      if (placedOrder && orders.some((o) => o.id === placedOrder.id)) return placedOrder.id;
       const active = orders.find((o) => isActive(o.status));
       return active?.id ?? orders[0].id;
     });
   }, [orders, placedOrder?.id]);
 
   const selectedRow = orders?.find((o) => o.id === selectedId) ?? null;
-  const detailActive = selectedRow ? isActive(selectedRow.status) : false;
 
   const { data: detail, isLoading: detailLoading } = trpc.driver.order.useQuery(
     { id: selectedId as string },
-    { enabled: !!selectedId, refetchInterval: detailActive ? 4000 : false },
+    { enabled: !!selectedId, refetchInterval: !!selectedId ? 3000 : false },
   );
 
   const status = detail?.status ?? selectedRow?.status ?? "new";
+  const detailActive = selectedId ? isActive(status) : false;
   const now = useNow(detailActive && (status === "accepted" || status === "preparing"));
+
+  const storeId = detail?.storeId ?? selectedRow?.storeId ?? placedOrder?.storeId ?? null;
+  const orderNo = detail?.orderNo ?? selectedRow?.orderNo ?? placedOrder?.orderNo ?? "-";
+  const storeName = selectedRow?.storeName ?? detail?.store?.name ?? "매장";
+  const itemSummary =
+    selectedRow?.itemSummary ??
+    (detail?.items.length
+      ? detail.items.length === 1
+        ? `${detail.items[0].name} ${detail.items[0].quantity}개`
+        : `${detail.items[0].name} 외 ${detail.items.length - 1}개`
+      : "");
+  const totalPrice = detail?.totalPrice ?? selectedRow?.totalPrice ?? 0;
 
   // Pickup complete → feedback (only for the order we just placed).
   useEffect(() => {
     if (status !== "done" || !placedOrder || placedOrder.id !== selectedId) return;
-    const t = setTimeout(() => goto(8), 1500);
+    const t = setTimeout(() => goToFeedback(placedOrder), 1500);
     return () => clearTimeout(t);
-  }, [status, placedOrder, selectedId, goto]);
+  }, [status, placedOrder, selectedId, goToFeedback]);
 
   const onSelect = (row: HistoryRow) => {
     setSelectedId(row.id);
@@ -124,8 +149,8 @@ export default function OrdersTabScreen() {
   };
 
   const { data: route } = trpc.driver.routeEta.useQuery(
-    { origin: driverLoc as { lat: number; lng: number }, storeId: selectedRow?.storeId as string },
-    { enabled: !!driverLoc && !!selectedRow && detailActive, refetchInterval: detailActive ? 60_000 : false },
+    { origin: driverLoc as { lat: number; lng: number }, storeId: storeId as string },
+    { enabled: !!driverLoc && !!storeId && detailActive, refetchInterval: detailActive ? 60_000 : false },
   );
 
   const storeLoc =
@@ -189,53 +214,57 @@ export default function OrdersTabScreen() {
 
       {/* right — detail / promo / map */}
       <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
-        {!selectedRow && !listLoading && (
+        {!selectedRow && !listLoading && !placedOrder && !selectedId && (
           <PromoPanel onOrder={() => goto(2)} />
         )}
 
-        {selectedRow && detailActive && driverLoc && (
-          <>
-            <div style={{ flex: "1 1 42%", minHeight: 160 }}>
+        {selectedId && detailActive && driverLoc && (
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ flex: "0 0 200px", minHeight: 160, maxHeight: 220 }}>
               <DriverMap store={storeLoc} driver={driverLoc} distanceM={distanceM} />
             </div>
-            <div style={{ flex: "1 1 58%", minHeight: 0, display: "flex", flexDirection: "column", gap: 12, overflowY: "auto" }} className="pl-scroll">
-              {status === "new" && <WaitCard />}
-              {showTimeline && (
-                <TimelineCard
-                  status={status}
-                  arrivalMs={arrivalMs}
-                  distanceM={distanceM}
-                  readyMs={readyMs}
-                  remaining={remaining}
-                  prepMinutes={detail?.prepMinutes ?? 10}
+            <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="pl-scroll">
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {status === "new" && <WaitCard />}
+                {showTimeline && (
+                  <TimelineCard
+                    status={status}
+                    arrivalMs={arrivalMs}
+                    distanceM={distanceM}
+                    readyMs={readyMs}
+                    remaining={remaining}
+                    prepMinutes={detail?.prepMinutes ?? 10}
+                  />
+                )}
+                {rejected && <RejectCard />}
+                <OrderSummaryCard
+                  orderNo={orderNo}
+                  carNumber={detail?.car.number}
+                  itemCount={detail?.items.length}
+                  totalPrice={totalPrice}
+                  storeName={storeName}
+                  itemSummary={itemSummary}
                 />
-              )}
-              {rejected && <RejectCard />}
-              <OrderSummaryCard
-                orderNo={detail?.orderNo ?? selectedRow.orderNo}
-                carNumber={detail?.car.number}
-                itemCount={detail?.items.length}
-                totalPrice={detail?.totalPrice ?? selectedRow.totalPrice}
-                storeName={selectedRow.storeName}
-                itemSummary={selectedRow.itemSummary}
-              />
-              {!rejected && status !== "ready" && status !== "done" && (
-                <HintBanner />
-              )}
-              {(status === "ready" || status === "done") && !rejected && (
-                <ActionButton label="픽업 완료 · 평가하기" onClick={() => goto(8)} pulse />
-              )}
-              {rejected && (
-                <ActionButton
-                  label="다시 주문하기"
-                  onClick={() => {
-                    resetOrder();
-                    goto(2);
-                  }}
-                />
-              )}
+                {!rejected && status !== "ready" && status !== "done" && <HintBanner />}
+              </div>
             </div>
-          </>
+            {(status === "ready" || status === "done") && !rejected && storeId && (
+              <ActionButton
+                label="픽업 완료 · 평가하기"
+                onClick={() => goToFeedback({ id: selectedId!, orderNo, storeId })}
+                pulse
+              />
+            )}
+            {rejected && (
+              <ActionButton
+                label="다시 주문하기"
+                onClick={() => {
+                  resetOrder();
+                  goto(2);
+                }}
+              />
+            )}
+          </div>
         )}
 
         {selectedRow && !detailActive && (
@@ -464,6 +493,11 @@ function ActionButton({
     <div
       onClick={() => !inactive && onClick()}
       style={{
+        flex: "0 0 auto",
+        flexShrink: 0,
+        width: "100%",
+        boxSizing: "border-box",
+        minHeight: 58,
         height: 58,
         borderRadius: 16,
         background: inactive ? "#C4CBD3" : "#3182F6",
@@ -472,22 +506,26 @@ function ActionButton({
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
+        padding: "0 20px",
         fontSize: 18,
         fontWeight: 800,
+        lineHeight: 1.2,
         cursor: inactive ? "default" : "pointer",
         boxShadow: inactive ? "none" : "0 10px 24px rgba(49,130,246,.3)",
         animation: pulse ? "pxcta 1.6s ease-in-out infinite" : undefined,
       }}
     >
-      <CheckIcon size={20} strokeWidth={2.6} />
-      {label}
+      <span style={{ flexShrink: 0, display: "flex" }}>
+        <CheckIcon size={20} strokeWidth={2.6} />
+      </span>
+      <span style={{ whiteSpace: "nowrap", flexShrink: 0 }}>{label}</span>
     </div>
   );
 }
 
 function HintBanner() {
   return (
-    <div style={{ background: "#FFF6E9", borderRadius: 16, padding: "15px 20px", display: "flex", alignItems: "center", gap: 12 }}>
+    <div style={{ flexShrink: 0, background: "#FFF6E9", borderRadius: 16, padding: "15px 20px", display: "flex", alignItems: "center", gap: 12 }}>
       <span style={{ fontSize: 20 }}>📍</span>
       <div style={{ fontSize: 15, color: "#191F28", fontWeight: 600 }}>
         창구에서 <span style={{ color: "#B5710A", fontWeight: 700 }}>차량번호</span>로 확인해요
