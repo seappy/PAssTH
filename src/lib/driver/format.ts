@@ -36,25 +36,26 @@ export const ellipsis = {
 export const PANGYO_STATION = { lat: 37.3947, lng: 127.1112 };
 
 /**
- * Random point 80–900m from an origin (default: 판교역), plus the matching
- * distance/ETA. Used when placing a driver order without real GPS, so the
- * order shows up on the merchant's live map/ETA widgets exactly like a real
- * approaching customer would — this replaces the old merchant-side "가짜 주문
- * 생성" demo tool now that real orders carry plausible location data.
+ * Random point 400–2200m from an origin (default: 판교역).
+ * Distance/ETA to each store are computed separately via Kakao route API.
  */
-export function randomNearbyFix(origin: { lat: number; lng: number } = PANGYO_STATION): {
+export function randomNearbyPoint(origin: { lat: number; lng: number } = PANGYO_STATION): {
   lat: number;
   lng: number;
-  distanceM: number;
-  etaSeconds: number;
 } {
-  const distanceM = Math.floor(Math.random() * (900 - 80 + 1)) + 80;
+  const distanceM = Math.floor(Math.random() * (2200 - 400 + 1)) + 400;
   const bearing = Math.random() * Math.PI * 2;
   const latRad = (origin.lat * Math.PI) / 180;
   const dLat = (distanceM * Math.cos(bearing)) / 111_000;
   const dLng = (distanceM * Math.sin(bearing)) / (111_000 * Math.cos(latRad));
-  const etaSeconds = drivingEtaSeconds(distanceM) + Math.floor(Math.random() * 90) + 30;
-  return { lat: origin.lat + dLat, lng: origin.lng + dLng, distanceM, etaSeconds };
+  return { lat: origin.lat + dLat, lng: origin.lng + dLng };
+}
+
+/** @deprecated Use randomNearbyPoint — distance/ETA come from route API now. */
+export function randomNearbyFix(origin: { lat: number; lng: number } = PANGYO_STATION) {
+  const point = randomNearbyPoint(origin);
+  const distanceM = haversineMeters(origin, point);
+  return { ...point, distanceM, etaSeconds: drivingEtaSeconds(distanceM) };
 }
 
 export function formatWon(n: number): string {

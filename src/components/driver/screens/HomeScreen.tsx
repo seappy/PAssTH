@@ -12,7 +12,7 @@ export default function HomeScreen() {
   const selectStore = useDriverStore((s) => s.selectStore);
   const placedOrder = useDriverStore((s) => s.placedOrder);
 
-  const { data: stores } = trpc.driver.stores.useQuery(driverLoc ?? undefined);
+  const { data: stores } = trpc.driver.stores.useQuery(driverLoc!, { enabled: !!driverLoc });
   const nearby = (stores ?? []).filter((s) => s.open).slice(0, 3);
 
   return (

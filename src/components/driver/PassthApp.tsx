@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useFitScale } from "@/lib/driver/useFitScale";
 import { SCREEN_TITLES } from "@/lib/driver/config";
 import { useDriverStore } from "@/stores/driver.store";
@@ -27,6 +28,11 @@ export default function PassthApp() {
   const goto = useDriverStore((s) => s.goto);
   const back = useDriverStore((s) => s.back);
   const toggleVoice = useDriverStore((s) => s.toggleVoice);
+  const ensureDemoDriverLoc = useDriverStore((s) => s.ensureDemoDriverLoc);
+
+  useEffect(() => {
+    ensureDemoDriverLoc();
+  }, [ensureDemoDriverLoc]);
 
   return (
     <div
