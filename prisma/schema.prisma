@@ -47,6 +47,7 @@ model Store {
   ownerId      String
   owner        User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name         String // 강남 1호점
+  imageUrl     String? // Supabase Storage public URL (store photo, shown in nav)
   isOpen       Boolean    @default(true)
   pickupOn     Boolean    @default(true)
   congestion   Congestion @default(mid)

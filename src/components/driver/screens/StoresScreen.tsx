@@ -56,7 +56,11 @@ export default function StoresScreen() {
                   style={{
                     height: 88,
                     flex: "0 0 88px",
-                    backgroundImage: "repeating-linear-gradient(135deg,#EEF1F4 0 11px,#E4E8ED 11px 22px)",
+                    backgroundImage: s.imageUrl
+                      ? `url(${s.imageUrl})`
+                      : "repeating-linear-gradient(135deg,#EEF1F4 0 11px,#E4E8ED 11px 22px)",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
                     display: "flex",
                     alignItems: "flex-start",
                     justifyContent: "space-between",

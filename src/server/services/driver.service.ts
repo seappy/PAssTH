@@ -51,6 +51,7 @@ function toStoreSummary(store: StoreRow, origin: { lat: number; lng: number }) {
   return {
     id: store.id,
     name: store.name,
+    imageUrl: store.imageUrl,
     congestion: store.congestion,
     open: isOrderable(store),
     hoursText: hoursText(store),

@@ -6,6 +6,7 @@ import { trpc } from "@/lib/trpc/client";
 import { Toggle } from "@/components/Toggle";
 import { DayPicker } from "@/components/DayPicker";
 import { TimeRangeField } from "@/components/TimeRangeField";
+import { IconImage } from "@/components/icons";
 import { CONGESTION_META, WEEKDAY_LABELS } from "@/lib/format";
 import { CONGESTION_LEVELS, type Congestion } from "@/types/domain";
 
@@ -42,7 +43,40 @@ export default function StorePage() {
   const updateHours = trpc.store.updateHours.useMutation({
     onSettled: () => utils.store.invalidate(),
   });
+  const setImage = trpc.store.setImage.useMutation({
+    onMutate: async ({ imageUrl }) => {
+      await utils.store.get.cancel();
+      patchStore({ imageUrl });
+    },
+    onSettled: () => utils.store.invalidate(),
+  });
   const sim = trpc.sim.createFakeOrder.useMutation();
+
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  const onPickStorePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setPhotoError(null);
+    setUploadingPhoto(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/store/upload", { method: "POST", body: fd });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) {
+        setPhotoError(data.error ?? "사진 업로드에 실패했어요.");
+        return;
+      }
+      setImage.mutate({ imageUrl: data.url });
+    } catch {
+      setPhotoError("사진 업로드 중 오류가 발생했어요.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   // Local hours state, synced from server.
   const [hours, setHours] = useState({
@@ -84,6 +118,53 @@ export default function StorePage() {
     <div className="flex-1 min-h-0 overflow-y-auto pl-scroll bg-canvas">
       <div className="px-5 pt-2 pb-7" style={{ animation: "plFade .25s ease" }}>
         <div className="font-bold text-2xl my-2 mb-[18px]">매장 관리</div>
+
+        {/* store photo — shown to drivers browsing stores in the nav client */}
+        <div className="text-[13px] text-ink-3 font-semibold mx-0.5 mb-1.5">매장 사진</div>
+        <div className="relative h-[140px] mb-1">
+          <label
+            className={`${store.imageUrl ? "" : "pl-stripe"} absolute inset-0 rounded-2xl bg-[#eef1f4] flex flex-col items-center justify-center gap-1.5 text-ink-3 font-semibold cursor-pointer overflow-hidden`}
+          >
+            {store.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={store.imageUrl} alt="매장 사진" className="w-full h-full object-cover" />
+            ) : (
+              <>
+                <IconImage size={26} />
+                <span className="text-[13px]">{uploadingPhoto ? "업로드 중…" : "사진 추가"}</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={onPickStorePhoto}
+              disabled={uploadingPhoto}
+            />
+          </label>
+          {uploadingPhoto ? (
+            <div className="absolute inset-0 rounded-2xl bg-black/30 flex items-center justify-center text-white text-[13px] font-semibold">
+              업로드 중…
+            </div>
+          ) : null}
+          {store.imageUrl && !uploadingPhoto ? (
+            <button
+              type="button"
+              onClick={() => setImage.mutate({ imageUrl: null })}
+              className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/55 text-white text-sm flex items-center justify-center"
+              aria-label="사진 삭제"
+            >
+              ✕
+            </button>
+          ) : null}
+        </div>
+        {photoError ? (
+          <div className="text-[13px] font-semibold text-[#f04452] mb-3 ml-0.5">{photoError}</div>
+        ) : (
+          <div className="text-[12.5px] text-ink-4 mb-[26px] ml-0.5">
+            운전자 앱(네비)에 표시되는 매장 사진이에요
+          </div>
+        )}
 
         {/* open status */}
         <div

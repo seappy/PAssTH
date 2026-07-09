@@ -44,3 +44,7 @@ export function setClosedDays(storeId: string, days: number[]) {
     data: { closedDays: clean },
   });
 }
+
+export function setImage(storeId: string, imageUrl: string | null) {
+  return prisma.store.update({ where: { id: storeId }, data: { imageUrl } });
+}

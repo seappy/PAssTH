@@ -5,9 +5,9 @@ import { uploadImage } from "@/server/storage";
 export const runtime = "nodejs";
 
 /**
- * Owner-authenticated menu photo upload. Streams the file to Supabase Storage
- * using the server-side service role key and returns the public URL to store
- * on Menu.imageUrl.
+ * Owner-authenticated store photo upload. Shown to drivers browsing stores in
+ * the nav client (trpc.driver.stores / storeMenu). Returns the public URL to
+ * store on Store.imageUrl.
  */
 export async function POST(req: Request) {
   const session = await auth();
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "파일이 없어요." }, { status: 400 });
   }
 
-  const result = await uploadImage(file, store.id);
+  const result = await uploadImage(file, `store/${store.id}`);
   if (!result.ok) {
     return Response.json({ error: result.error }, { status: result.status });
   }

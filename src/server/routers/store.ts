@@ -30,4 +30,8 @@ export const storeRouter = router({
   setClosedDays: storeProcedure
     .input(z.object({ days: z.array(z.number().int().min(0).max(6)) }))
     .mutation(({ ctx, input }) => store.setClosedDays(ctx.store.id, input.days)),
+
+  setImage: storeProcedure
+    .input(z.object({ imageUrl: z.string().url().nullable() }))
+    .mutation(({ ctx, input }) => store.setImage(ctx.store.id, input.imageUrl)),
 });
