@@ -65,9 +65,16 @@ export interface DriverState {
   clearCart: () => void;
   cartTotal: () => number;
   reviewOrder: () => void; // 메뉴 → 주문 확인
+  /** Past order → same cart + 결제(확인) 화면 */
+  reorderFromHistory: (order: {
+    storeId: string;
+    items: { menuId?: string | null; name: string; price: number; quantity: number; optionsText?: string | null }[];
+    customerMemo?: string | null;
+  }) => void;
   placeOrder: () => Promise<PlacedOrder | null>; // 주문 확인 → 결제/생성 → 완료
   goToPickup: () => void;
-  resumeOrder: (order: PlacedOrder) => void; // 완료 → 픽업 진행
+  resumeOrder: (order: PlacedOrder) => void;
+  clearPlacedOrder: () => void; // 완료 → 픽업 진행
 
   // ---- settings ----
   pickColor: (index: number) => void;
@@ -100,10 +107,11 @@ export const useDriverStore = create<DriverState>()(
       // ---- navigation ----
       goto: (screen) => set({ screen }),
       back: () =>
-        set((s) => ({
-          // settings(7) & feedback(8) are leaf screens → back returns home
-          screen: s.screen >= 7 ? 1 : (Math.max(1, s.screen - 1) as ScreenId),
-        })),
+        set((s) => {
+          // 주문 탭(6)·후기(8) 등 — 뒤로가면 홈으로 (5 완료 화면 경유 방지)
+          if (s.screen === 6 || s.screen >= 7) return { screen: 1 };
+          return { screen: Math.max(1, s.screen - 1) as ScreenId };
+        }),
       goHome: () => set({ screen: 1 }),
 
       // ---- voice panel ----
@@ -158,6 +166,24 @@ export const useDriverStore = create<DriverState>()(
         set({ screen: 4 });
       },
 
+      reorderFromHistory: (order) => {
+        if (!order.items.length) return;
+        set({
+          selectedStoreId: order.storeId,
+          cart: order.items.map((it) => ({
+            menuId: it.menuId ?? "",
+            name: it.name,
+            unitPrice: it.price,
+            qty: it.quantity,
+            optionsText: it.optionsText ?? undefined,
+          })),
+          memo: order.customerMemo?.trim() ?? "",
+          placedOrder: null,
+          orderError: null,
+          screen: 4,
+        });
+      },
+
       placeOrder: async () => {
         const s = get();
         if (s.placing) return null;
@@ -203,6 +229,8 @@ export const useDriverStore = create<DriverState>()(
       goToPickup: () => set({ screen: 6 }),
 
       resumeOrder: (order) => set({ placedOrder: order, screen: 6 }),
+
+      clearPlacedOrder: () => set({ placedOrder: null }),
 
       // ---- settings ----
       pickColor: (index) =>

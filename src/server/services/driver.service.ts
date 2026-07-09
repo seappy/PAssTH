@@ -166,10 +166,12 @@ export async function getDriverOrder(id: string) {
   return {
     id: order.id,
     orderNo: order.orderNo,
+    storeId: order.storeId,
     status: order.status,
     prepMinutes: order.prepMinutes,
     etaSeconds: order.etaSeconds,
     totalPrice: order.totalPrice,
+    customerMemo: order.customerMemo,
     // Store location for the driver map + distance/ETA calc.
     store: order.store,
     // Last status change — used to estimate the ready time on the driver side
@@ -182,6 +184,7 @@ export async function getDriverOrder(id: string) {
       type: order.carType,
     },
     items: order.items.map((it) => ({
+      menuId: it.menuId,
       name: it.nameSnap,
       price: it.priceSnap,
       quantity: it.quantity,
