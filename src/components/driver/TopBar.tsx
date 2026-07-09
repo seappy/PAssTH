@@ -47,9 +47,9 @@ export default function TopBar({
           // name.png is a wide wordmark with lots of vertical white padding — clip
           // to the centered text band so the logo reads at a proper size, and
           // multiply-blend the near-white background into the white top bar.
-          <div style={{ height: 30, display: "flex", alignItems: "center", overflow: "hidden" }}>
+          <div style={{ height: 24, display: "flex", alignItems: "center", overflow: "hidden" }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/assets/name.png" alt="PAssTH" style={{ height: 96, width: "auto", display: "block", mixBlendMode: "multiply" }} />
+            <img src="/assets/name.png" alt="PAssTH" style={{ height: 77, width: "auto", display: "block", mixBlendMode: "multiply" }} />
           </div>
         ) : (
           <div style={{ fontSize: 21, fontWeight: 700, color: "#191F28", letterSpacing: "-.02em" }}>{title}</div>

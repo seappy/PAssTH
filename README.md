@@ -1,179 +1,245 @@
-# Pleos Pickup — 하나의 서버, 두 개의 클라이언트
+# PAssTH — 가는 길에, 미리 주문하세요
 
-픽업(차량) 주문 플랫폼입니다. **하나의 백엔드(tRPC · Prisma · Auth.js · SSE)** 위에
-두 개의 클라이언트가 올라갑니다.
+**PAssTH(패스스루)** 는 운전자가 **차량 인포테인먼트에서 음성·터치로** 경로 주변 매장을
+찾아 픽업 주문을 하고, 매장 사장님이 그 주문을 **실시간으로** 받아 처리하는 픽업 주문
+플랫폼입니다. "가는 길에 미리 주문 → 도착 시간에 딱 맞춰 픽업"이 핵심 가치입니다.
 
-| 클라이언트 | 경로 | 대상 | 설명 |
+> **하나의 백엔드(Next.js · tRPC · Prisma · Supabase · SSE) 위에 두 개의 클라이언트**
+> — 운전자용 인포테인먼트와 사장님용 관리 앱 — 이 올라가고, 브라우저 음성인식 +
+> 별도 배포된 **AI 대화 서버**가 결합해 실제 주문까지 완성됩니다.
+
+| 클라이언트 | 경로 | 대상 | 한 줄 설명 |
 | --- | --- | --- | --- |
-| **사장님(Merchant)** | `/home`·`/orders`·`/menu`·`/store`·`/map` | 매장 사장님(모바일) | 실시간 주문 수신·처리 |
-| **운전자(Driver) 인포테인먼트** | `/drive` | 차량 인포테인먼트(1280×720) | 가는 길에 미리 주문 |
+| 🚗 **운전자 인포테인먼트** | `/drive` | 차량 디스플레이(1280×720) | 음성/터치로 가는 길에 주문 |
+| 🏪 **사장님 관리 앱** | `/home` 외 | 매장 사장님(모바일) | 실시간 주문 수신·조리·픽업 관리 |
 
-**핵심은 실시간 주문 수신** — 운전자(또는 별도 고객/주문 앱)가 넣은 주문이 사장님
-화면에 리로드 없이 즉시 표시됩니다. 두 클라이언트는 동일한 tRPC/Prisma 타입과
-SSE 실시간 파이프라인을 공유하므로, 운전자 앱이 지금의 목업 데이터를 실제 주문 API로
-바꾸면 그대로 사장님 화면과 연결됩니다.
+---
 
-Toss 스타일 UI를 프로덕션 수준으로 구현했습니다(사장님 프로토타입
-`Pleos Pickup Merchant.dc.html`, 운전자 인포테인먼트는 `passth-web` 프로토타입에서 포팅).
+## ✨ 핵심 기능
 
-## 기술 스택
+### 🚗 운전자 (in-car)
+- **음성 주문** — "스타벅스 가고 싶어" → "아메리카노 한 잔" → "결제" 한 번의 대화로 주문 완료
+  (브라우저 음성인식/합성 + AI 대화 서버, 아래 [AI 음성 주문](#-ai-음성-주문-구조) 참조)
+- **경로 주변 매장 탐색** — Kakao 길찾기 기반 실제 **도착 ETA·거리** 로 정렬, 스폰서(광고) 추천
+- **리스트 / 지도 보기 전환** — Kakao 지도에 매장 핀, 탭하면 매장 정보 카드
+- **"가는 길에" 픽업 타임라인** — *내 도착 예정 시각* vs *조리 완료 예정 시각* 을 나란히 보여주고
+  "도착에 딱 맞춰 준비돼요 / N분 대기" 를 판정 (픽업의 핵심 UX)
+- 메뉴·옵션 선택 → 결제(Pleos Pay) → **실시간 픽업 진행**(수락→준비중→완료) → 별점·후기
+
+### 🏪 사장님 (merchant)
+- **실시간 주문 수신** — 운전자/음성/외부 주문이 리로드 없이 즉시 화면에 뜸(도착 알림 오버레이)
+- 주문 상태 진행(수락·조리시간 조절·완료), 메뉴 관리(사진 업로드 · 품절 토글 · CRUD),
+  매장 관리(영업·픽업·혼잡도·영업시간), **Kakao 실시간 도착 지도**
+
+### 🔗 둘을 잇는 것
+운전자가 (음성이든 터치든) 넣은 주문은 **같은 Supabase DB**에 저장되고, Postgres
+`LISTEN/NOTIFY` → SSE 로 **사장님 화면에 실시간 반영**됩니다.
+
+---
+
+## 🎬 데모 시나리오 (음성 주문 → 사장님 접수)
+
+```
+운전자: (마이크) "스타벅스 가고 싶어"
+ GLEO : "스타벅스 판교점이 3분으로 가장 빨라요. 이 매장으로 주문할까요?"   [응 / 다른 매장]
+운전자: "응"
+ GLEO : "어떤 메뉴로 드릴까요?"                                          [아이스 아메리카노 / …]
+운전자: "아이스 아메리카노"
+ GLEO : "담았어요. 결제할까요?"                                          [결제 / 메뉴 더]
+운전자: "결제"
+ GLEO : "주문이 매장에 전달됐어요. 도착 시간에 맞춰 준비할게요."
+   ↓  (같은 순간)
+사장님 /orders 화면 : 🔔 신규 주문 #A-###  아이스 아메리카노 · 12가 3456  — 리로드 없이 등장
+```
+
+---
+
+## 🧠 시스템 구성
+
+```
+┌───────────────────────── 브라우저 (차량 / 사장님) ─────────────────────────┐
+│  운전자 /drive          사장님 /home·/orders·/menu·/store·/map            │
+│  · Web Speech STT/TTS   · 실시간 주문 리스트 (SSE 구독)                    │
+└───────────────┬───────────────────────────────┬──────────────────────────┘
+                │ tRPC / fetch                   │ SSE (/api/events)
+┌───────────────▼───────────────────────────────▼──────────────────────────┐
+│                      Next.js 14 (App Router) — 단일 서버                    │
+│  tRPC 라우터(driver·order·menu·store·category·sim)                         │
+│  Route Handlers: /api/voice/turn · /api/ingest/orders · /api/kakao/*       │
+│  events.ts (Postgres LISTEN/NOTIFY ↔ in-process EventEmitter ↔ SSE)        │
+└───────┬───────────────────────┬───────────────────────┬───────────────────┘
+        │ Prisma                │ HTTP                   │ HTTP
+┌───────▼────────┐   ┌──────────▼───────────┐   ┌────────▼─────────┐
+│ Supabase       │   │ AI 음성 서버 (별도)   │   │ Kakao Local /    │
+│ PostgreSQL     │   │ FastAPI · GPT · 대화  │   │ Mobility (길찾기)│
+│ + Storage(사진)│   │ (Railway 배포)        │   │ ETA·거리         │
+└────────────────┘   └──────────────────────┘   └──────────────────┘
+```
+
+핵심 설계 원칙: **터치와 음성이 같은 "행동 계층"을 공유**합니다. 운전자 앱의 모든 동작은
+`src/stores/driver.store.ts`(Zustand)의 액션으로 존재하고, 터치 UI도 음성 파이프라인도
+동일한 액션을 호출합니다.
+
+---
+
+## 🎙 AI 음성 주문 구조
+
+음성 파이프라인은 **역할이 명확히 분리**돼 있어, 각 부분을 독립적으로 교체할 수 있습니다.
+
+| 단계 | 위치 | 구현 |
+| --- | --- | --- |
+| STT (음성→텍스트) | 브라우저 | Web Speech API (`WebSpeechStt`) |
+| **대화·의도 이해** | AI 서버(Python) | FastAPI `POST /order/turn` — 매장 검색·메뉴·주문을 관장 |
+| 프록시 | Next 서버 | `/api/voice/turn` — 서버 간 중계 + **완료 주문을 Supabase로 브리지** |
+| 실행/렌더 | 브라우저 | 응답(`speech_text`·`quick_actions`·`order_summary`)을 대화 UI로 |
+| TTS (텍스트→음성) | 브라우저 | Web Speech API (`WebSpeechTts`) |
+
+- AI 서버는 별도 저장소/배포(팀 협업). 앱은 `VOICE_SERVICE_URL` 로만 연결합니다.
+- 대화가 `completed` 되면 `/api/voice/turn`이 주문을 **매장 DB에 미러링**해 사장님 화면에
+  실시간으로 뜨게 합니다(`bridgeOrder`).
+- 관련 코드: `src/lib/driver/voice/*`, `src/components/driver/useVoiceAssistant.ts`,
+  `src/app/api/voice/turn/route.ts`. (계약 문서: `src/lib/driver/voice/README.md`)
+
+---
+
+## 🛠 기술 스택
 
 | 영역 | 사용 기술 |
 | --- | --- |
-| 프론트 | Next.js 14 (App Router), TypeScript, Tailwind CSS v4 |
-| 상태 | TanStack Query(서버 상태, 낙관적 업데이트) + Zustand(UI 상태) |
-| API | tRPC (타입 안전) · Next Route Handlers |
-| DB | PostgreSQL + Prisma ORM |
-| 인증 | Auth.js(NextAuth v5) Credentials(이메일+비밀번호, JWT 세션) |
-| 실시간 | **SSE + Postgres `LISTEN/NOTIFY`** — 프로세스/앱 경계를 넘는 이벤트 |
+| 프론트 | **Next.js 14** (App Router) · TypeScript · Tailwind CSS v4 |
+| 상태 | TanStack Query(서버 상태) + **Zustand**(운전자 행동/UI 상태) |
+| API | **tRPC**(타입 안전) · Next Route Handlers |
+| DB | **Supabase PostgreSQL** + Prisma ORM · **Supabase Storage**(메뉴/매장 사진) |
+| 인증 | Auth.js(NextAuth v5) Credentials + JWT 세션 |
+| 실시간 | **SSE + Postgres `LISTEN/NOTIFY`** (프로세스/앱 경계를 넘는 이벤트) |
+| 지도/길찾기 | **Kakao Maps** + Kakao Mobility(도착 ETA·거리) |
+| 음성 | 브라우저 **Web Speech API**(STT/TTS) + 외부 AI FastAPI(대화) |
 
-## 화면
+---
 
-### 사장님(Merchant) — `src/app/(owner)`
-홈(통계·실시간 도착·신규/진행/최근 주문) · 주문 목록(상태 필터) · 주문 상세(큰 ETA·차량·
-상품·상태 진행 CTA) · 메뉴 관리(분류 필터/추가·삭제, CRUD, 품절 토글, FAB) · 매장 관리
-(영업·픽업·혼잡도·영업시간·정기휴무) · 실시간 도착 지도 · 차량 도착 알림 오버레이.
-
-### 운전자(Driver) 인포테인먼트 — `src/app/(driver)/drive`
-차량 디스플레이용 1280×720 캔버스(뷰포트에 맞춰 자동 스케일). 홈(경로 주변 추천·최근 주문)
-· 가는 길에 주문(경로순 매장) · 메뉴/옵션 · 주문 확인/결제(Pleos Pay) · 주문 완료(ETA 전달)
-· 픽업 진행(지도·남은 시간·상태 진행) · 설정(차량 정보·즐겨찾기) · GLEO 음성 주문 패널.
-현재는 목업 데이터 기반 프로토타입이며, 사장님 앱과 같은 tRPC API에 연결할 준비가 돼 있습니다.
-
-## 로컬 실행
+## 🚀 로컬 실행
 
 ### 사전 준비
-- Node 18+ / Docker
+- Node 18+
+- **Supabase 프로젝트**(권장) 또는 로컬 Docker Postgres
 
 ### 순서
 
 ```bash
-# 1) 의존성
 npm install
+cp .env.example .env          # 아래 환경변수 채우기
 
-# 2) 로컬 Postgres (docker-compose, 호스트 포트 5544)
-npm run db:up
+# DB — 택1
+#  (a) Supabase: .env에 DATABASE_URL/DIRECT_URL 넣고
+npx prisma migrate deploy && npm run db:seed
+#  (b) 로컬 Docker:
+npm run db:up && npm run db:migrate && npm run db:seed
 
-# 3) 환경변수
-cp .env.example .env      # 값은 그대로 로컬용으로 동작합니다
-
-# 4) 스키마 마이그레이션 + 시드(프로토타입 목업 데이터)
-npm run db:migrate        # prisma migrate dev
-npm run db:seed           # 사장님/매장/분류3/메뉴6/주문5 시딩
-
-# 5) 개발 서버
-npm run dev               # http://localhost:3000
+npm run dev                   # http://localhost:3000
 ```
 
-### 접속
+접속:
+- 🚗 **운전자**: http://localhost:3000/drive  (로그인 불필요)
+- 🏪 **사장님**: http://localhost:3000  → 로그인 후 `/home`
 
-- **사장님(Merchant)**: http://localhost:3000 → 로그인 후 `/home`
-- **운전자(Driver) 인포테인먼트**: http://localhost:3000/drive (로그인 불필요)
+데모 로그인(사장님): `owner@pleos.dev` / `pleos1234`
 
-### 데모 로그인 (사장님)
+> 음성 주문은 `VOICE_SERVICE_URL`(AI FastAPI)이 설정돼 있어야 완전 동작합니다. 없어도
+> 터치 주문·실시간 수신은 그대로 동작합니다. (Web Speech STT는 Chrome + 마이크 권한 필요,
+> 마이크가 없으면 패널의 텍스트 입력으로 테스트 가능)
+
+---
+
+## 🔑 환경변수 (`.env.example` 참고)
+
+| 변수 | 설명 |
+| --- | --- |
+| `DATABASE_URL` / `DIRECT_URL` | Supabase 풀링(6543) / 세션(5432) 연결. 세션 연결은 마이그레이션 + `LISTEN/NOTIFY`용 |
+| `AUTH_SECRET` | Auth.js 세션 시크릿 (`openssl rand -base64 32`) |
+| `VOICE_SERVICE_URL` | AI 음성 FastAPI 주소 (예: Railway 배포 URL) |
+| `NEXT_PUBLIC_KAKAO_MAP_KEY` | Kakao Maps JS 키(지도). 없으면 목업 지도로 폴백 |
+| `KAKAO_REST_API_KEY` | Kakao 길찾기(ETA) REST 키 |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Storage 사진 업로드용(서버 전용) |
+| `INGEST_API_KEY` | 외부 주문 인제스트 API 키 |
+
+---
+
+## ⚡ 실시간 파이프라인
 
 ```
-이메일   owner@pleos.dev
-비밀번호 pleos1234
+주문 생성(터치 · 음성 브리지 · 인제스트)
+  → createOrder() → pg_notify('pleos_events', …)          [공유 Supabase]
+  → 전용 LISTEN 커넥션(src/server/events.ts) 수신
+  → in-process EventEmitter
+  → /api/events (SSE, 매장별 필터)
+  → 클라이언트 RealtimeBridge → 쿼리 무효화 + 도착 알림
 ```
 
-## 실시간 주문 데모
+NOTIFY가 공유 DB를 경유하므로 **다른 프로세스/앱(음성 브리지·외부 주문)이 넣은 주문도**
+사장님 화면이 즉시 수신합니다.
 
-두 가지 방법으로 신규 주문을 밀어넣어, 사장님 화면에 **리로드 없이** 즉시 뜨는 것을
-확인할 수 있습니다.
+### 주문 상태 흐름
+```
+new ─accept→ accepted ─advance→ preparing ─advance→ ready ─advance→ done
+  └─reject→ rejected
+```
 
-### ① 앱 내 버튼
-`매장` 탭 → **데모 도구 → 가짜 주문 생성**. 랜덤 주문이 생성되고 홈/주문 목록에 즉시 반영,
-도착 알림 오버레이가 뜹니다.
-
-### ② 외부 주문 앱 (인제스트 API)
-별도의 로컬 고객/주문 앱이 이 엔드포인트로 주문을 전송하면 됩니다. 공유 Postgres를
-경유한 `NOTIFY`가 SSE로 사장님 화면에 전달됩니다.
-
+### 외부 주문 인제스트(참고)
 ```bash
 curl -X POST http://localhost:3000/api/ingest/orders \
-  -H "content-type: application/json" \
-  -H "x-store-key: pleos-dev-ingest-key" \
-  -d '{
-    "items": [
-      { "name": "딸기라떼", "price": 6000, "quantity": 1, "optionsText": "ICE · 휘핑 추가" }
-    ],
-    "car": { "number": "11가 2222", "color": "파랑", "model": "아이오닉", "type": "승용" },
-    "distanceM": 120,
-    "etaSeconds": 95,
-    "customerMemo": "조수석 창문으로 전달 부탁드려요"
-  }'
+  -H "content-type: application/json" -H "x-store-key: $INGEST_API_KEY" \
+  -d '{"items":[{"name":"딸기라떼","price":6000,"quantity":1}],
+       "car":{"number":"11가 2222","color":"파랑"}}'
 ```
 
-- 인증: `x-store-key` 헤더 = `INGEST_API_KEY`(.env).
-- `storeId` 생략 시 첫(단일) 매장으로 들어갑니다.
-- 응답: `{ ok, id, orderNo, storeId }`.
+---
 
-## 주문 상태 흐름
+## 📁 폴더 구조
 
 ```
-new ──accept──▶ accepted ──advance──▶ preparing ──advance──▶ ready ──advance──▶ done
-  └─reject──▶ rejected
-```
-
-수락(조리 대기)과 조리 시작을 명시적으로 분리했습니다. 상태 변경/조리시간 조절/품절
-토글은 **낙관적 업데이트**로 즉시 반영 후 서버로 확정됩니다.
-
-## 아키텍처 메모
-
-- **타입 공유**: Prisma 모델 → tRPC 라우터 → 프론트가 하나의 타입 소스를 공유
-  (`inferRouterOutputs`). 나중에 고객용 앱이 같은 API를 재사용할 수 있습니다.
-- **실시간 파이프라인**: 뮤테이션/인제스트 → `pg_notify('pleos_events', …)` →
-  전용 LISTEN 커넥션(`src/server/events.ts`)이 수신 → 프로세스 내 EventEmitter →
-  `/api/events`(SSE, 매장별 필터) → 클라이언트 `RealtimeBridge`가 쿼리 무효화 +
-  도착 알림. NOTIFY가 공유 DB를 경유하므로 **다른 프로세스(외부 주문 앱)의 주문도 수신**.
-- **인증**: Credentials + JWT 세션(어댑터 테이블 불필요). 서버 프로시저는
-  `protectedProcedure`/`storeProcedure`로 로그인·매장 소유를 보장.
-
-## 폴더 구조
-
-```
-prisma/              schema.prisma · seed.ts
+prisma/                     schema.prisma · seed.ts · migrations/
 src/
   app/
-    (auth)/login              사장님 로그인
-    (owner)/{home,orders,menu,store,map}   ← 사장님 클라이언트
-    (driver)/drive            ← 운전자 인포테인먼트 클라이언트
-    api/*                     trpc · events(SSE) · ingest · auth  (두 클라이언트 공용 서버)
-  server/            db · auth · trpc · events · services/* · routers/*   (공용 백엔드)
+    (auth)/login                          사장님 로그인
+    (owner)/{home,orders,menu,store,map}  ← 사장님 클라이언트
+    (driver)/drive                        ← 운전자 인포테인먼트
+    api/
+      trpc · events(SSE) · ingest · auth  두 클라이언트 공용
+      voice/turn                          AI 음성 프록시 + 주문 브리지
+      kakao/directions                    Kakao 길찾기 ETA
+      menu/upload · store/upload          Supabase Storage 사진 업로드
+  server/
+    events.ts                             LISTEN/NOTIFY ↔ SSE
+    routers/{driver,order,menu,store,category,sim}
+    services/{driver,order,menu,store,category,kakao-route,sim}
   components/
-    (사장님)          PhoneFrame·BottomNav·Toggle·OrderCard·MenuCard·ArrivalAlert 등
-    driver/           PassthApp·NavRail·TopBar·VoicePanel·Icons·Placeholder·screens/*
-  lib/
-    (사장님)          trpc client/provider · format · hooks · useLiveClock
-    driver/           types · mockData · useFitScale
-  stores/            ui.store (Zustand)
-public/assets/       gleo-icon.png (운전자 GLEO 음성비서 아이콘)
+    (사장님)  PhoneFrame·BottomNav·OrderCard·MenuCard·map/KakaoMap 등
+    driver/   PassthApp·NavRail·TopBar·VoicePanel·DriverMap·StoresMap·screens/*
+  lib/driver/ api · config · format · types · useFitScale · voice/*
+  stores/     ui.store · driver.store (운전자 행동 계층)
+public/assets/ logo.png · name.png · gleo-icon.png
 ```
 
-두 클라이언트는 `src/server/*`(tRPC·Prisma·Auth·SSE)와 `src/app/api/*`를 공유합니다.
-운전자 UI 코드는 `src/components/driver/`·`src/lib/driver/`로 네임스페이스를 분리해
+운전자 코드는 `src/components/driver/` · `src/lib/driver/` 로 네임스페이스를 분리해
 사장님 코드와 섞이지 않습니다.
 
-## 배포 참고 (Vercel + Supabase/Neon)
+---
 
-- Vercel serverless는 장수명 SSE 연결과 프로세스 상주 LISTEN에 제약이 있습니다.
-  프로덕션에서는 (a) SSE/이벤트 처리를 Node 상주 런타임(예: Fly.io, Railway, 또는
-  Vercel의 장수명 함수 대안)에 두거나, (b) **Supabase Realtime 채널**로 교체하는 것을
-  권장합니다. `src/server/events.ts`의 pub/sub 인터페이스(`notify`/`subscribe`)만
-  바꾸면 나머지 코드는 그대로 재사용됩니다.
-- 지도는 목업 좌표 기반(`src/components/map/LiveMap.tsx`). Mapbox 등으로 교체 시
-  마커 데이터(거리/좌표) 구조는 그대로 두고 위치 계산만 바꾸면 됩니다.
+## ☁️ 배포
 
-## 스크립트
+- **DB**: Supabase(PostgreSQL). LISTEN/NOTIFY는 **세션 풀러(5432)** 로 연결해야 동작.
+- **앱**: SSE 상주 연결 때문에 서버리스(Vercel)보다 **상주 Node 런타임(Railway/Fly/Render)**
+  권장. 저장소에 `Dockerfile` + 상세 가이드 `DEPLOY.md` 포함.
+- **AI 음성 서버**: 별도 FastAPI(Railway) — 앱은 `VOICE_SERVICE_URL` 로 연결.
+
+## 📜 스크립트
 
 | 명령 | 설명 |
 | --- | --- |
-| `npm run dev` | 개발 서버 |
-| `npm run build` / `start` | 프로덕션 빌드/실행 |
-| `npm run lint` | ESLint |
-| `npm run db:up` / `db:down` | 로컬 Postgres 기동/종료 |
-| `npm run db:migrate` | Prisma 마이그레이션 |
-| `npm run db:seed` | 시드 데이터 |
-| `npm run db:reset` | DB 리셋 + 재마이그레이션 + 시드 |
-| `npm run db:studio` | Prisma Studio |
+| `npm run dev` / `build` / `start` | 개발 / 프로덕션 빌드 / 실행 |
+| `npm run db:migrate` / `db:seed` / `db:reset` | Prisma 마이그레이션 / 시드 / 리셋 |
+| `npm run db:up` / `db:down` / `db:studio` | 로컬 Postgres 기동·종료 / Prisma Studio |
+
+---
+
+<p align="center"><b>PAssTH</b> · 가는 길에, 미리 주문하세요 🚗</p>
