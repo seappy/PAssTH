@@ -74,6 +74,9 @@ export interface DriverState {
     customerMemo?: string | null;
   }) => void;
   placeOrder: () => Promise<PlacedOrder | null>; // 주문 확인 → 결제/생성 → 완료
+  /** Voice path: a completed order (already created via the AI+bridge) → show the
+   *  same 완료/픽업 progress screens as touch by seeding `placedOrder`. */
+  trackPlacedOrder: (order: PlacedOrder) => void;
   goToPickup: () => void;
   resumeOrder: (order: PlacedOrder) => void;
   clearPlacedOrder: () => void; // 완료 → 픽업 진행
@@ -228,6 +231,8 @@ export const useDriverStore = create<DriverState>()(
           return null;
         }
       },
+
+      trackPlacedOrder: (order) => set({ placedOrder: order, orderError: null, screen: 5 }),
 
       goToPickup: () => set({ screen: 6 }),
 
