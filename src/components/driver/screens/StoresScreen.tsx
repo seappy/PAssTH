@@ -7,7 +7,9 @@ import { congestionLabel, ellipsis, formatDistance, formatEta } from "@/lib/driv
 export default function StoresScreen() {
   const driverLoc = useDriverStore((s) => s.driverLoc);
   const selectStore = useDriverStore((s) => s.selectStore);
-  const { data: stores, isLoading, isError } = trpc.driver.stores.useQuery(driverLoc ?? undefined);
+  const { data: stores, isLoading, isError } = trpc.driver.stores.useQuery(driverLoc!, {
+    enabled: !!driverLoc,
+  });
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "22px 28px" }}>

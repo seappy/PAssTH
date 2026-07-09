@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { CartLine, CarInfo, PlacedOrder, Prefs, ScreenId } from "@/lib/driver/types";
 import { carColorDefs } from "@/lib/driver/config";
 import { driverApi } from "@/lib/driver/api";
-import { randomNearbyFix } from "@/lib/driver/format";
+import { randomNearbyPoint, PANGYO_STATION } from "@/lib/driver/format";
 
 /**
  * Driver (in-car) store — single source of truth for the `/drive` client and
@@ -56,6 +56,8 @@ export interface DriverState {
 
   // ---- location ----
   setDriverLoc: (loc: { lat: number; lng: number } | null) => void;
+  /** Demo GPS near 판교역 when no real head-unit location is wired up. */
+  ensureDemoDriverLoc: () => void;
 
   // ---- ordering flow (the "remote control buttons") ----
   selectStore: (storeId: string) => void;
@@ -93,7 +95,7 @@ export const useDriverStore = create<DriverState>()(
       voiceOpen: false,
       listening: false,
       messages: [GREETING],
-      driverLoc: null,
+      driverLoc: randomNearbyPoint(PANGYO_STATION),
       selectedStoreId: null,
       cart: [],
       car: DEFAULT_CAR,
@@ -122,6 +124,11 @@ export const useDriverStore = create<DriverState>()(
 
       // ---- location ----
       setDriverLoc: (driverLoc) => set({ driverLoc }),
+
+      ensureDemoDriverLoc: () => {
+        if (get().driverLoc) return;
+        set({ driverLoc: randomNearbyPoint(PANGYO_STATION) });
+      },
 
       // ---- ordering flow ----
       selectStore: (storeId) =>
@@ -194,11 +201,9 @@ export const useDriverStore = create<DriverState>()(
         }
         set({ placing: true, orderError: null });
         try {
-          // No real GPS wired up yet — simulate a plausible position near 판교역
-          // (80–900m out, with matching distance/ETA) so the order shows up
-          // "alive" on the merchant's live map exactly like a real approaching
-          // customer would. Real driverLoc (if ever set) takes priority.
-          const fix = s.driverLoc ? null : randomNearbyFix();
+          const loc = s.driverLoc ?? randomNearbyPoint(PANGYO_STATION);
+          if (!s.driverLoc) set({ driverLoc: loc });
+
           const result = await driverApi.driver.createOrder.mutate({
             storeId,
             items: s.cart.map((l) => ({
@@ -210,10 +215,8 @@ export const useDriverStore = create<DriverState>()(
             })),
             car: s.car,
             customerMemo: s.memo || undefined,
-            distanceM: fix?.distanceM,
-            etaSeconds: fix?.etaSeconds,
-            custLat: s.driverLoc?.lat ?? fix?.lat,
-            custLng: s.driverLoc?.lng ?? fix?.lng,
+            custLat: loc.lat,
+            custLng: loc.lng,
           });
           set({ placing: false, placedOrder: result, screen: 5 });
           return result;

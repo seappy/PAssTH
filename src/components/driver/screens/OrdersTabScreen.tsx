@@ -4,7 +4,6 @@ import { Fragment, useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { useDriverStore } from "@/stores/driver.store";
 import {
-  DRIVER_ORIGIN,
   ORDER_STEPS,
   drivingEtaSeconds,
   ellipsis,
@@ -12,7 +11,6 @@ import {
   formatCountdown,
   formatDistance,
   formatWon,
-  haversineMeters,
   stepIndex,
 } from "@/lib/driver/format";
 import { DriverMap } from "@/components/driver/DriverMap";
@@ -69,7 +67,7 @@ function useNow(active: boolean) {
 export default function OrdersTabScreen() {
   const carNumber = useDriverStore((s) => s.car.number);
   const placedOrder = useDriverStore((s) => s.placedOrder);
-  const driverLoc = useDriverStore((s) => s.driverLoc) ?? DRIVER_ORIGIN;
+  const driverLoc = useDriverStore((s) => s.driverLoc);
   const goto = useDriverStore((s) => s.goto);
   const resetOrder = useDriverStore((s) => s.resetOrder);
   const resumeOrder = useDriverStore((s) => s.resumeOrder);
@@ -125,12 +123,23 @@ export default function OrdersTabScreen() {
     }
   };
 
+  const { data: route } = trpc.driver.routeEta.useQuery(
+    { origin: driverLoc as { lat: number; lng: number }, storeId: selectedRow?.storeId as string },
+    { enabled: !!driverLoc && !!selectedRow && detailActive, refetchInterval: detailActive ? 60_000 : false },
+  );
+
   const storeLoc =
     detail?.store?.lat != null && detail?.store?.lng != null
       ? { lat: detail.store.lat, lng: detail.store.lng }
       : null;
-  const distanceM = storeLoc ? haversineMeters(driverLoc, storeLoc) : null;
-  const arrivalMs = distanceM != null ? mountTime + drivingEtaSeconds(distanceM) * 1000 : null;
+  const distanceM =
+    route?.distanceM ??
+    (detailActive && detail?.distanceM ? detail.distanceM : null);
+  const drivingEtaSec =
+    route?.etaSeconds ??
+    (detailActive && detail?.etaSeconds ? detail.etaSeconds : null) ??
+    (distanceM != null ? drivingEtaSeconds(distanceM) : null);
+  const arrivalMs = drivingEtaSec != null ? mountTime + drivingEtaSec * 1000 : null;
   const updatedMs = detail?.updatedAt ? new Date(detail.updatedAt).getTime() : null;
   const prepMs = (detail?.prepMinutes ?? 10) * 60000;
   const readyMs = updatedMs != null ? updatedMs + prepMs : null;
@@ -184,7 +193,7 @@ export default function OrdersTabScreen() {
           <PromoPanel onOrder={() => goto(2)} />
         )}
 
-        {selectedRow && detailActive && (
+        {selectedRow && detailActive && driverLoc && (
           <>
             <div style={{ flex: "1 1 42%", minHeight: 160 }}>
               <DriverMap store={storeLoc} driver={driverLoc} distanceM={distanceM} />

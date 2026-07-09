@@ -5,6 +5,7 @@ import {
   getDriverOrder,
   getStoreMenu,
   listStoresForDriver,
+  getRouteToStore,
   listOrdersByCar,
   placeDriverOrder,
   submitFeedback,
@@ -27,6 +28,15 @@ export const driverRouter = router({
       if (!menu) throw new TRPCError({ code: "NOT_FOUND", message: "매장을 찾을 수 없습니다." });
       return menu;
     }),
+
+  routeEta: publicProcedure
+    .input(
+      z.object({
+        storeId: z.string(),
+        origin: z.object({ lat: z.number(), lng: z.number() }),
+      }),
+    )
+    .query(({ input }) => getRouteToStore(input.origin, input.storeId)),
 
   createOrder: publicProcedure
     .input(
