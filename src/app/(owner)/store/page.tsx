@@ -50,7 +50,6 @@ export default function StorePage() {
     },
     onSettled: () => utils.store.invalidate(),
   });
-  const sim = trpc.sim.createFakeOrder.useMutation();
 
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -263,22 +262,6 @@ export default function StorePage() {
           />
         </div>
 
-        {/* demo tools */}
-        <div className="font-bold text-[17px] mb-3 mt-[26px]">데모 도구</div>
-        <button
-          type="button"
-          onClick={() => sim.mutate()}
-          disabled={sim.isPending}
-          className="w-full bg-white rounded-2xl px-4 py-4 shadow-sm flex items-center justify-between mb-3 disabled:opacity-60"
-        >
-          <div className="text-left">
-            <div className="font-bold text-[15px]">가짜 주문 생성</div>
-            <div className="text-[13px] text-ink-3 mt-0.5">실시간 수신 데모용 랜덤 주문</div>
-          </div>
-          <span className="font-bold text-accent text-sm">
-            {sim.isPending ? "생성 중…" : "＋ 생성"}
-          </span>
-        </button>
         <button
           type="button"
           onClick={() => signOut({ callbackUrl: "/login" })}

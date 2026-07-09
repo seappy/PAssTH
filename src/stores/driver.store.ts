@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import type { CartLine, CarInfo, PlacedOrder, Prefs, ScreenId } from "@/lib/driver/types";
 import { carColorDefs } from "@/lib/driver/config";
 import { driverApi } from "@/lib/driver/api";
+import { randomNearbyFix } from "@/lib/driver/format";
 
 /**
  * Driver (in-car) store — single source of truth for the `/drive` client and
@@ -166,6 +167,11 @@ export const useDriverStore = create<DriverState>()(
         }
         set({ placing: true, orderError: null });
         try {
+          // No real GPS wired up yet — simulate a plausible position near 판교역
+          // (80–900m out, with matching distance/ETA) so the order shows up
+          // "alive" on the merchant's live map exactly like a real approaching
+          // customer would. Real driverLoc (if ever set) takes priority.
+          const fix = s.driverLoc ? null : randomNearbyFix();
           const result = await driverApi.driver.createOrder.mutate({
             storeId,
             items: s.cart.map((l) => ({
@@ -177,9 +183,10 @@ export const useDriverStore = create<DriverState>()(
             })),
             car: s.car,
             customerMemo: s.memo || undefined,
-            distanceM: undefined,
-            custLat: s.driverLoc?.lat,
-            custLng: s.driverLoc?.lng,
+            distanceM: fix?.distanceM,
+            etaSeconds: fix?.etaSeconds,
+            custLat: s.driverLoc?.lat ?? fix?.lat,
+            custLng: s.driverLoc?.lng ?? fix?.lng,
           });
           set({ placing: false, placedOrder: result, screen: 5 });
           return result;

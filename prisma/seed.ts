@@ -7,9 +7,9 @@ const prisma = new PrismaClient();
 const OWNER_EMAIL = "owner@pleos.dev";
 const OWNER_PASSWORD = "pleos1234";
 
-// Pangyo Station-area café anchor for the live map.
-const STORE_LAT = 37.3947;
-const STORE_LNG = 127.1112;
+// 카페몬지 판교점 — 판교역로146번길 20, 9층 (현대백화점판교점 건물).
+const STORE_LAT = 37.3927985;
+const STORE_LNG = 127.1120536;
 
 async function main() {
   console.log("🌱 Seeding Pleos Pickup Merchant…");
@@ -29,7 +29,7 @@ async function main() {
   const store = await prisma.store.create({
     data: {
       ownerId: owner.id,
-      name: "카페 온기",
+      name: "카페몬지 판교점",
       isOpen: true,
       pickupOn: true,
       congestion: "mid",

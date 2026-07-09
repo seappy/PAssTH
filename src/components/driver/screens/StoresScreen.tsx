@@ -28,10 +28,12 @@ export default function StoresScreen() {
             minHeight: 0,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gridAutoRows: "minmax(0, 220px)",
+            // Fixed (not minmax/shrinkable) so cards never get squashed as the
+            // store count grows — overflow scrolls instead of compressing rows.
+            gridAutoRows: "220px",
             alignContent: "start",
             gap: 16,
-            overflow: "auto",
+            overflowY: "auto",
           }}
           className="pl-scroll"
         >
