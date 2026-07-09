@@ -1,8 +1,41 @@
+import { TRPCError } from "@trpc/server";
 import { prisma } from "@/server/db";
 import type { Congestion } from "@/types/domain";
 
 export function getStore(storeId: string) {
   return prisma.store.findUniqueOrThrow({ where: { id: storeId } });
+}
+
+/** All stores this owner manages (for the store switcher), oldest first. */
+export function listMyStores(ownerId: string) {
+  return prisma.store.findMany({
+    where: { ownerId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true, imageUrl: true, isOpen: true },
+  });
+}
+
+/** Point the merchant UI at a different store the owner already manages. */
+export async function switchActiveStore(ownerId: string, storeId: string) {
+  const store = await prisma.store.findFirst({ where: { id: storeId, ownerId } });
+  if (!store) {
+    throw new TRPCError({ code: "NOT_FOUND", message: "매장을 찾을 수 없습니다." });
+  }
+  await prisma.user.update({ where: { id: ownerId }, data: { activeStoreId: storeId } });
+  return store;
+}
+
+/** Create a new store for this owner (with one starter category) and switch to it. */
+export async function createStore(ownerId: string, name: string) {
+  const store = await prisma.store.create({
+    data: {
+      ownerId,
+      name,
+      categories: { create: [{ name: "메뉴", sortOrder: 0 }] },
+    },
+  });
+  await prisma.user.update({ where: { id: ownerId }, data: { activeStoreId: store.id } });
+  return store;
 }
 
 export function setStatus(

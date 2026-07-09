@@ -39,12 +39,24 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   return next({ ctx: { ...ctx, userId: ctx.session.user.id } });
 });
 
-/** Requires an authenticated owner AND resolves their store. Attaches `store`. */
+/**
+ * Requires an authenticated owner AND resolves the store they're currently
+ * managing. Prefers `User.activeStoreId` (set via the store switcher); falls
+ * back to the first-created store if unset or if it no longer belongs to
+ * this owner (e.g. after a switch to a store that was later deleted).
+ */
 export const storeProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-  const store = await ctx.prisma.store.findFirst({
-    where: { ownerId: ctx.userId },
-    orderBy: { createdAt: "asc" },
+  const user = await ctx.prisma.user.findUnique({
+    where: { id: ctx.userId },
+    include: { activeStore: true },
   });
+  let store = user?.activeStore && user.activeStore.ownerId === ctx.userId ? user.activeStore : null;
+  if (!store) {
+    store = await ctx.prisma.store.findFirst({
+      where: { ownerId: ctx.userId },
+      orderBy: { createdAt: "asc" },
+    });
+  }
   if (!store) {
     throw new TRPCError({ code: "NOT_FOUND", message: "매장을 찾을 수 없습니다." });
   }

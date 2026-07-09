@@ -34,19 +34,22 @@ enum OrderStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  name         String?
-  stores       Store[]
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String?
+  stores        Store[]  @relation("StoreOwner")
+  activeStoreId String? // which of the owner's stores the merchant UI currently manages
+  activeStore   Store?   @relation("ActiveStore", fields: [activeStoreId], references: [id])
+  createdAt     DateTime @default(now())
 }
 
 model Store {
   id           String     @id @default(cuid())
   ownerId      String
-  owner        User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name         String // 강남 1호점
+  owner        User       @relation("StoreOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  activeFor    User[]     @relation("ActiveStore")
+  name         String // 카페 온기
   imageUrl     String? // Supabase Storage public URL (store photo, shown in nav)
   isOpen       Boolean    @default(true)
   pickupOn     Boolean    @default(true)

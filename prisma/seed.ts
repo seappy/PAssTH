@@ -29,7 +29,7 @@ async function main() {
   const store = await prisma.store.create({
     data: {
       ownerId: owner.id,
-      name: "판교 1호점",
+      name: "카페 온기",
       isOpen: true,
       pickupOn: true,
       congestion: "mid",

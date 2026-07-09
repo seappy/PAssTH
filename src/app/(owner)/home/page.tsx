@@ -1,7 +1,7 @@
 "use client";
 
 import { trpc } from "@/lib/trpc/client";
-import { IconChevronDown } from "@/components/icons";
+import { StoreSwitcher } from "@/components/store/StoreSwitcher";
 import { LiveArrivalWidget } from "@/components/LiveArrivalWidget";
 import { NewOrderCard } from "@/components/orders/NewOrderCard";
 import { OrderCard, RecentRow } from "@/components/orders/OrderCard";
@@ -40,12 +40,7 @@ export default function HomePage() {
       <div className="px-5 pt-2 pb-7" style={{ animation: "plFade .25s ease" }}>
         {/* header */}
         <div className="flex items-center justify-between my-2 mb-[22px]">
-          <div className="flex items-center gap-1.5">
-            <span className="font-bold text-[22px]">{storeQ.data?.name ?? "매장"}</span>
-            <span className="text-ink-3">
-              <IconChevronDown size={20} />
-            </span>
-          </div>
+          <StoreSwitcher currentId={storeQ.data?.id} currentName={storeQ.data?.name ?? "매장"} />
           <div
             className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-bold text-[13px]"
             style={

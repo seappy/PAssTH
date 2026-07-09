@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, storeProcedure } from "@/server/trpc";
+import { router, protectedProcedure, storeProcedure } from "@/server/trpc";
 import * as store from "@/server/services/store.service";
 import { CONGESTION_LEVELS } from "@/types/domain";
 
@@ -34,4 +34,15 @@ export const storeRouter = router({
   setImage: storeProcedure
     .input(z.object({ imageUrl: z.string().url().nullable() }))
     .mutation(({ ctx, input }) => store.setImage(ctx.store.id, input.imageUrl)),
+
+  // Owner-level (not tied to a single resolved store) — powers the store switcher.
+  myStores: protectedProcedure.query(({ ctx }) => store.listMyStores(ctx.userId)),
+
+  switchTo: protectedProcedure
+    .input(z.object({ storeId: z.string() }))
+    .mutation(({ ctx, input }) => store.switchActiveStore(ctx.userId, input.storeId)),
+
+  createStore: protectedProcedure
+    .input(z.object({ name: z.string().min(1, "매장명을 입력하세요").max(40) }))
+    .mutation(({ ctx, input }) => store.createStore(ctx.userId, input.name)),
 });
