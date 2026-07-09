@@ -101,8 +101,8 @@ export default function MenuScreen() {
         <div
           className={effectiveSel?.imageUrl ? undefined : "pl-stripe"}
           style={{
-            height: 168,
-            flex: "0 0 168px",
+            height: 104,
+            flex: "0 0 104px",
             backgroundColor: "#EEF1F4",
             backgroundImage: effectiveSel?.imageUrl ? `url(${effectiveSel.imageUrl})` : undefined,
             backgroundSize: "cover",
@@ -110,66 +110,67 @@ export default function MenuScreen() {
           }}
         />
 
-        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: 24 }}>
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#B0B8C1", fontWeight: 600, letterSpacing: ".05em" }}>OPTIONS</div>
-        <div style={{ fontSize: 23, fontWeight: 800, color: "#191F28", margin: "8px 0 20px" }}>{effectiveSel?.name}</div>
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: "18px 24px 20px" }}>
+        {/* scrollable: grows/shrinks with option count, never pushes the footer below off-screen */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }} className="pl-scroll">
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#B0B8C1", fontWeight: 600, letterSpacing: ".05em" }}>OPTIONS</div>
+          <div style={{ fontSize: 21, fontWeight: 800, color: "#191F28", margin: "6px 0 14px" }}>{effectiveSel?.name}</div>
 
-        {effectiveSel && effectiveSel.options.length > 0 ? (
-          <>
-            <div style={{ fontSize: 14, fontWeight: 700, color: "#8B95A1", marginBottom: 10 }}>추가 옵션</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
-              {effectiveSel.options.map((o) => {
-                const on = !!opts[o.id];
-                return (
-                  <div
-                    key={o.id}
-                    onClick={() => setOpts((p) => ({ ...p, [o.id]: !p[o.id] }))}
-                    style={{
-                      padding: "11px 18px",
-                      borderRadius: 999,
-                      cursor: "pointer",
-                      background: on ? "#EAF2FF" : "#F7F8FA",
-                      border: on ? "1.5px solid #3182F6" : "1.5px solid transparent",
-                      color: on ? "#3182F6" : "#8B95A1",
-                      fontSize: 15,
-                      fontWeight: on ? 700 : 600,
-                    }}
-                  >
-                    {o.name}{o.extraPrice ? ` +${formatWon(o.extraPrice)}` : ""}
-                  </div>
-                );
-              })}
-            </div>
-          </>
-        ) : (
-          <div style={{ fontSize: 14, color: "#B0B8C1", marginBottom: 22 }}>선택 가능한 옵션이 없어요.</div>
-        )}
+          {effectiveSel && effectiveSel.options.length > 0 ? (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#8B95A1", marginBottom: 8 }}>추가 옵션</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {effectiveSel.options.map((o) => {
+                  const on = !!opts[o.id];
+                  return (
+                    <div
+                      key={o.id}
+                      onClick={() => setOpts((p) => ({ ...p, [o.id]: !p[o.id] }))}
+                      style={{
+                        padding: "11px 18px",
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        background: on ? "#EAF2FF" : "#F7F8FA",
+                        border: on ? "1.5px solid #3182F6" : "1.5px solid transparent",
+                        color: on ? "#3182F6" : "#8B95A1",
+                        fontSize: 15,
+                        fontWeight: on ? 700 : 600,
+                      }}
+                    >
+                      {o.name}{o.extraPrice ? ` +${formatWon(o.extraPrice)}` : ""}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div style={{ fontSize: 14, color: "#B0B8C1" }}>선택 가능한 옵션이 없어요.</div>
+          )}
+        </div>
 
-        <div style={{ fontSize: 14, fontWeight: 700, color: "#8B95A1", marginBottom: 10 }}>수량</div>
+        <div style={{ fontSize: 13, fontWeight: 700, color: "#8B95A1", margin: "14px 0 8px" }}>수량</div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div onClick={() => setQty((q) => Math.max(1, q - 1))} style={stepBtn("#F2F4F6", "#4E5968")}>
+          <div onClick={() => setQty((q) => Math.max(1, q - 1))} style={stepBtn("#F2F4F6", "#4E5968", 46)}>
             <MinusIcon />
           </div>
-          <div className="num" style={{ fontSize: 30, fontWeight: 800, color: "#191F28", width: 50, textAlign: "center" }}>{qty}</div>
-          <div onClick={() => setQty((q) => q + 1)} style={stepBtn("#EAF2FF", "#3182F6")}>
+          <div className="num" style={{ fontSize: 26, fontWeight: 800, color: "#191F28", width: 44, textAlign: "center" }}>{qty}</div>
+          <div onClick={() => setQty((q) => q + 1)} style={stepBtn("#EAF2FF", "#3182F6", 46)}>
             <PlusIcon />
           </div>
         </div>
 
-        <div style={{ flex: 1 }} />
-
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 4px", borderTop: "1px solid #F2F4F6", marginTop: 16 }}>
-          <span style={{ fontSize: 16, color: "#4E5968", fontWeight: 600 }}>담기 금액</span>
-          <span className="num" style={{ fontSize: 24, fontWeight: 800, color: "#191F28" }}>{formatWon(lineTotal)}원</span>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 4px", borderTop: "1px solid #F2F4F6", marginTop: 12 }}>
+          <span style={{ fontSize: 15, color: "#4E5968", fontWeight: 600 }}>담기 금액</span>
+          <span className="num" style={{ fontSize: 22, fontWeight: 800, color: "#191F28" }}>{formatWon(lineTotal)}원</span>
         </div>
-        <div onClick={add} style={{ height: 56, borderRadius: 16, background: "#EAF2FF", color: "#3182F6", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 18, fontWeight: 800, cursor: "pointer", marginBottom: 10 }}>
-          <PlusIcon size={20} strokeWidth={2.4} /> 장바구니 담기
+        <div onClick={add} style={{ height: 48, borderRadius: 14, background: "#EAF2FF", color: "#3182F6", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 16, fontWeight: 800, cursor: "pointer", marginBottom: 8 }}>
+          <PlusIcon size={18} strokeWidth={2.4} /> 장바구니 담기
         </div>
         <div
           onClick={() => cartCount > 0 && reviewOrder()}
           style={{
-            height: 60,
-            borderRadius: 16,
+            height: 52,
+            borderRadius: 14,
             background: cartCount > 0 ? "#3182F6" : "#C4CBD3",
             color: "#fff",
             display: "flex",
@@ -191,8 +192,8 @@ export default function MenuScreen() {
   );
 }
 
-function stepBtn(bg: string, color: string): React.CSSProperties {
-  return { width: 54, height: 54, borderRadius: 15, background: bg, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color };
+function stepBtn(bg: string, color: string, size = 54): React.CSSProperties {
+  return { width: size, height: size, borderRadius: 15, background: bg, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color };
 }
 
 function Center({ text }: { text: string }) {

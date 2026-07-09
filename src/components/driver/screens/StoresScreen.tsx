@@ -28,7 +28,8 @@ export default function StoresScreen() {
             minHeight: 0,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gridAutoRows: "minmax(0, 1fr)",
+            gridAutoRows: "minmax(0, 220px)",
+            alignContent: "start",
             gap: 16,
             overflow: "auto",
           }}
