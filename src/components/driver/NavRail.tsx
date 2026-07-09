@@ -59,8 +59,8 @@ export default function NavRail({
           width: 48,
           height: 48,
           borderRadius: 15,
-          backgroundImage: "url('/assets/gleo-icon.png')",
-          backgroundSize: "126px auto",
+          backgroundImage: "url('/assets/logo.png')",
+          backgroundSize: "132%", // crop the logo's white padding to fill the tile
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           cursor: "pointer",

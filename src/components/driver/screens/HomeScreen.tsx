@@ -5,6 +5,13 @@ import { useDriverStore } from "@/stores/driver.store";
 import { formatDistance, formatEta, ellipsis } from "@/lib/driver/format";
 import { ArrowRightIcon, ChevronRightIcon, MicIcon, SearchIcon } from "@/components/driver/Icons";
 
+// Sponsored (paid) placements — hardcoded demo ads shown above the organic
+// "경로 주변 추천" list. Not backed by real stores; tapping opens search.
+const AD_STORES = [
+  { name: "메가MGC커피 판교테크노밸리점", desc: "아메리카노 1,500원 · 신규 오픈 이벤트" },
+  { name: "버거킹 판교점", desc: "와퍼세트 20% · 드라이브스루 픽업" },
+];
+
 export default function HomeScreen() {
   const driverLoc = useDriverStore((s) => s.driverLoc);
   const goto = useDriverStore((s) => s.goto);
@@ -85,6 +92,30 @@ export default function HomeScreen() {
             <ChevronRightIcon color="#3182F6" />
           </div>
         )}
+
+        {/* sponsored (paid ad) placements */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1" }}>스폰서 추천</span>
+            <span style={{ fontSize: 10, fontWeight: 800, color: "#B0790A", background: "#FFF3D6", borderRadius: 5, padding: "2px 5px", letterSpacing: ".02em" }}>AD</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {AD_STORES.map((ad, i) => (
+              <div
+                key={i}
+                onClick={() => goto(2)}
+                style={{ display: "flex", alignItems: "center", gap: 14, background: "#FFFDF7", border: "1px solid #F0E4C6", borderRadius: 16, padding: "14px 18px", cursor: "pointer", boxShadow: "0 2px 8px rgba(80,60,20,.04)" }}
+              >
+                <div style={{ width: 44, height: 44, flex: "0 0 44px", borderRadius: 12, background: "#FFF3D6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🏷️</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ ...ellipsis, fontSize: 17, fontWeight: 700, color: "#191F28" }} title={ad.name}>{ad.name}</div>
+                  <div style={{ ...ellipsis, fontSize: 13, color: "#B0790A", fontWeight: 600 }}>{ad.desc}</div>
+                </div>
+                <ChevronRightIcon color="#D9B85A" />
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 10 }}>경로 주변 추천</div>

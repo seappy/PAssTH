@@ -50,6 +50,8 @@ async function toStoreSummary(store: StoreRow, origin: { lat: number; lng: numbe
     id: store.id,
     name: store.name,
     imageUrl: store.imageUrl,
+    lat: store.lat,
+    lng: store.lng,
     congestion: store.congestion,
     open: isOrderable(store),
     hoursText: hoursText(store),

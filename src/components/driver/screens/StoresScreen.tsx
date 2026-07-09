@@ -1,8 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { useDriverStore } from "@/stores/driver.store";
-import { congestionLabel, ellipsis, formatDistance, formatEta } from "@/lib/driver/format";
+import { congestionLabel, ellipsis, formatDistance, formatEta, PANGYO_STATION } from "@/lib/driver/format";
+import { StoresMap } from "@/components/driver/StoresMap";
+
+type View = "list" | "map";
 
 export default function StoresScreen() {
   const driverLoc = useDriverStore((s) => s.driverLoc);
@@ -10,28 +14,41 @@ export default function StoresScreen() {
   const { data: stores, isLoading, isError } = trpc.driver.stores.useQuery(driverLoc!, {
     enabled: !!driverLoc,
   });
+  const [view, setView] = useState<View>("list");
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", padding: "22px 28px" }}>
+      {/* view toggle */}
       <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1" }}>경로 주변 매장 · 가까운 순</div>
+        <div style={{ display: "flex", gap: 6, background: "#EEF1F4", borderRadius: 12, padding: 4 }}>
+          <Tab active={view === "list"} onClick={() => setView("list")}>매장 리스트</Tab>
+          <Tab active={view === "map"} onClick={() => setView("map")}>지도로 보기</Tab>
+        </div>
         <div style={{ flex: 1 }} />
-        <div style={{ fontSize: 14, color: "#8B95A1", fontWeight: 600 }}>경로순 정렬</div>
+        {view === "list" && <div style={{ fontSize: 14, color: "#8B95A1", fontWeight: 600 }}>가까운 순</div>}
       </div>
 
       {isLoading && <CenterNote text="매장을 불러오는 중…" />}
       {isError && <CenterNote text="매장을 불러오지 못했어요." />}
       {stores && stores.length === 0 && <CenterNote text="주변에 매장이 없어요." />}
 
-      {stores && stores.length > 0 && (
+      {stores && stores.length > 0 && view === "map" && (
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <StoresMap
+            stores={stores.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng, open: s.open, etaSeconds: s.etaSeconds }))}
+            driver={driverLoc ?? PANGYO_STATION}
+            onSelect={(id) => selectStore(id)}
+          />
+        </div>
+      )}
+
+      {stores && stores.length > 0 && view === "list" && (
         <div
           style={{
             flex: 1,
             minHeight: 0,
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            // Fixed (not minmax/shrinkable) so cards never get squashed as the
-            // store count grows — overflow scrolls instead of compressing rows.
             gridAutoRows: "220px",
             alignContent: "start",
             gap: 16,
@@ -106,6 +123,26 @@ export default function StoresScreen() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function Tab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: "8px 18px",
+        borderRadius: 9,
+        fontSize: 14,
+        fontWeight: 700,
+        cursor: "pointer",
+        background: active ? "#fff" : "transparent",
+        color: active ? "#191F28" : "#8B95A1",
+        boxShadow: active ? "0 2px 6px rgba(20,40,80,.08)" : "none",
+      }}
+    >
+      {children}
     </div>
   );
 }
