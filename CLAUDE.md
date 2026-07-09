@@ -80,8 +80,8 @@ public/assets/gleo-icon.png       ← 운전자 GLEO 음성비서 아이콘
 
 - **음성 구현**: `src/lib/driver/voice/`의 엔진 3종 구현 + `POST /api/voice/intent`
   (LLM tool-use, command 변형당 tool 1개). 스토어/커맨드/컨텍스트 계층은 이미 준비됨.
-- **매장 다양화**: 완료됨 — 개인 카페 이름의 매장 4곳(카페 온기 외 3곳)이 시드/DB에 있음.
-  사장님은 홈 화면 매장명 옆 화살표로 관리 매장을 전환·추가할 수 있음(`User.activeStoreId`).
+- **매장 다양화**: 시드 `STORE_SPECS`에 판교 인근 실제 카페 11곳(카페몬지 판교점 포함).
+  시드 실행 시 목록에 맞춰 매장·메뉴(카페몬지 기준) 동기화. 사장님은 홈 매장 전환(`User.activeStoreId`).
 - **운전자 실시간 상태**: 픽업 화면은 현재 4초 폴링(`trpc.driver.order` refetchInterval).
   원하면 SSE(주문별)로 승격 가능.
 

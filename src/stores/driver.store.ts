@@ -66,7 +66,8 @@ export interface DriverState {
   cartTotal: () => number;
   reviewOrder: () => void; // 메뉴 → 주문 확인
   placeOrder: () => Promise<PlacedOrder | null>; // 주문 확인 → 결제/생성 → 완료
-  goToPickup: () => void; // 완료 → 픽업 진행
+  goToPickup: () => void;
+  resumeOrder: (order: PlacedOrder) => void; // 완료 → 픽업 진행
 
   // ---- settings ----
   pickColor: (index: number) => void;
@@ -200,6 +201,8 @@ export const useDriverStore = create<DriverState>()(
       },
 
       goToPickup: () => set({ screen: 6 }),
+
+      resumeOrder: (order) => set({ placedOrder: order, screen: 6 }),
 
       // ---- settings ----
       pickColor: (index) =>

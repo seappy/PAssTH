@@ -16,6 +16,7 @@ import {
 } from "@/lib/driver/format";
 import { DriverMap } from "@/components/driver/DriverMap";
 import { ArrowRightIcon, CheckIcon } from "@/components/driver/Icons";
+import OrderHistoryScreen from "./OrderHistoryScreen";
 
 function useNow(active: boolean) {
   const [now, setNow] = useState(() => Date.now());
@@ -33,12 +34,20 @@ export default function PickupScreen() {
   const goto = useDriverStore((s) => s.goto);
   const driverLoc = useDriverStore((s) => s.driverLoc) ?? DRIVER_ORIGIN;
 
-  const { data: order } = trpc.driver.order.useQuery(
+  const { data: order, isLoading } = trpc.driver.order.useQuery(
     { id: placedOrder?.id as string },
     { enabled: !!placedOrder, refetchInterval: 4000 },
   );
 
   const status = order?.status ?? "new";
+  const hasActiveOrder =
+    !!placedOrder &&
+    (isLoading || (status !== "done" && status !== "rejected"));
+
+  if (!hasActiveOrder) {
+    return <OrderHistoryScreen />;
+  }
+
   const now = useNow(status === "accepted" || status === "preparing");
   const [mountTime] = useState(() => Date.now());
 
