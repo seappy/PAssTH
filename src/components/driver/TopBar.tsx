@@ -43,7 +43,17 @@ export default function TopBar({
             <BackIcon />
           </div>
         )}
-        <div style={{ fontSize: 21, fontWeight: 700, color: "#191F28", letterSpacing: "-.02em" }}>{title}</div>
+        {title === "PAssTH" ? (
+          // name.png is a wide wordmark with lots of vertical white padding — clip
+          // to the centered text band so the logo reads at a proper size, and
+          // multiply-blend the near-white background into the white top bar.
+          <div style={{ height: 30, display: "flex", alignItems: "center", overflow: "hidden" }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/name.png" alt="PAssTH" style={{ height: 96, width: "auto", display: "block", mixBlendMode: "multiply" }} />
+          </div>
+        ) : (
+          <div style={{ fontSize: 21, fontWeight: 700, color: "#191F28", letterSpacing: "-.02em" }}>{title}</div>
+        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 9, background: "#EAF2FF", borderRadius: 12, padding: "9px 15px" }}>

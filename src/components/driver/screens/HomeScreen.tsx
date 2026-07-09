@@ -5,22 +5,19 @@ import { useDriverStore } from "@/stores/driver.store";
 import { formatDistance, formatEta, ellipsis } from "@/lib/driver/format";
 import { ArrowRightIcon, ChevronRightIcon, MicIcon, SearchIcon } from "@/components/driver/Icons";
 
-// Sponsored (paid) placements — hardcoded demo ads shown above the organic
-// "경로 주변 추천" list. Not backed by real stores; tapping opens search.
-const AD_STORES = [
-  { name: "메가MGC커피 판교테크노밸리점", desc: "아메리카노 1,500원 · 신규 오픈 이벤트" },
-  { name: "버거킹 판교점", desc: "와퍼세트 20% · 드라이브스루 픽업" },
-];
+type RecoStore = { id: string; name: string; distanceM: number | null; etaSeconds: number | null };
 
 export default function HomeScreen() {
   const driverLoc = useDriverStore((s) => s.driverLoc);
   const goto = useDriverStore((s) => s.goto);
   const toggleVoice = useDriverStore((s) => s.toggleVoice);
-  const selectStore = useDriverStore((s) => s.selectStore);
   const placedOrder = useDriverStore((s) => s.placedOrder);
 
   const { data: stores } = trpc.driver.stores.useQuery(driverLoc!, { enabled: !!driverLoc });
   const nearby = (stores ?? []).filter((s) => s.open).slice(0, 3);
+  // Sponsored = real DB branches, distinct from the organic recommendations.
+  const nearbyIds = new Set(nearby.map((s) => s.id));
+  const sponsored = (stores ?? []).filter((s) => s.open && !nearbyIds.has(s.id)).slice(0, 2);
 
   return (
     <div style={{ height: "100%", display: "flex", gap: 20, padding: "24px 28px" }}>
@@ -93,54 +90,61 @@ export default function HomeScreen() {
           </div>
         )}
 
-        {/* sponsored (paid ad) placements */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1" }}>스폰서 추천</span>
-            <span style={{ fontSize: 10, fontWeight: 800, color: "#B0790A", background: "#FFF3D6", borderRadius: 5, padding: "2px 5px", letterSpacing: ".02em" }}>AD</span>
+        {/* sponsored (paid) — real DB branches, same card as 추천 (color only differs) */}
+        {sponsored.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <span style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1" }}>스폰서 추천</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: "#B0790A", background: "#FFF3D6", borderRadius: 5, padding: "2px 5px", letterSpacing: ".02em" }}>AD</span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {sponsored.map((s) => (
+                <StoreReco key={s.id} store={s} ad />
+              ))}
+            </div>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {AD_STORES.map((ad, i) => (
-              <div
-                key={i}
-                onClick={() => goto(2)}
-                style={{ display: "flex", alignItems: "center", gap: 14, background: "#FFFDF7", border: "1px solid #F0E4C6", borderRadius: 16, padding: "14px 18px", cursor: "pointer", boxShadow: "0 2px 8px rgba(80,60,20,.04)" }}
-              >
-                <div style={{ width: 44, height: 44, flex: "0 0 44px", borderRadius: 12, background: "#FFF3D6", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>🏷️</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ ...ellipsis, fontSize: 17, fontWeight: 700, color: "#191F28" }} title={ad.name}>{ad.name}</div>
-                  <div style={{ ...ellipsis, fontSize: 13, color: "#B0790A", fontWeight: 600 }}>{ad.desc}</div>
-                </div>
-                <ChevronRightIcon color="#D9B85A" />
-              </div>
-            ))}
-          </div>
-        </div>
+        )}
 
         <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 10 }}>경로 주변 추천</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {nearby.length === 0 && <div style={{ color: "#B0B8C1", fontSize: 14 }}>주변 매장을 불러오는 중…</div>}
             {nearby.map((s) => (
-              <div
-                key={s.id}
-                onClick={() => selectStore(s.id)}
-                style={{ display: "flex", alignItems: "center", gap: 14, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "16px 18px", cursor: "pointer", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ ...ellipsis, fontSize: 18, fontWeight: 700, color: "#191F28" }} title={s.name}>
-                    {s.name}
-                  </div>
-                  <div style={{ fontSize: 14, color: "#8B95A1" }}>경로에서 {formatDistance(s.distanceM)}</div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#EAF2FF", borderRadius: 10, padding: "7px 12px" }}>
-                  <span className="num" style={{ fontSize: 17, fontWeight: 800, color: "#3182F6" }}>{formatEta(s.etaSeconds)}</span>
-                  <span style={{ fontSize: 11, color: "#3182F6", fontWeight: 600 }}>ETA</span>
-                </div>
-              </div>
+              <StoreReco key={s.id} store={s} />
             ))}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** Shared recommendation card. Sponsored (`ad`) differs by color only. */
+function StoreReco({ store, ad }: { store: RecoStore; ad?: boolean }) {
+  const selectStore = useDriverStore((s) => s.selectStore);
+  const accent = ad ? "#B0790A" : "#3182F6";
+  return (
+    <div
+      onClick={() => selectStore(store.id)}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        background: ad ? "#FFFDF7" : "#fff",
+        border: `1px solid ${ad ? "#F0E4C6" : "#EDF0F3"}`,
+        borderRadius: 16,
+        padding: "16px 18px",
+        cursor: "pointer",
+        boxShadow: ad ? "0 2px 8px rgba(80,60,20,.04)" : "0 2px 8px rgba(20,40,80,.03)",
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ ...ellipsis, fontSize: 18, fontWeight: 700, color: "#191F28" }} title={store.name}>{store.name}</div>
+        <div style={{ fontSize: 14, color: "#8B95A1", marginTop: 2 }}>경로에서 {formatDistance(store.distanceM)}</div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, background: ad ? "#FFF3D6" : "#EAF2FF", borderRadius: 10, padding: "7px 12px" }}>
+        <span className="num" style={{ fontSize: 17, fontWeight: 800, color: accent }}>{formatEta(store.etaSeconds)}</span>
+        <span style={{ fontSize: 11, color: accent, fontWeight: 600 }}>ETA</span>
       </div>
     </div>
   );
