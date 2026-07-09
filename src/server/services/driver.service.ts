@@ -97,6 +97,7 @@ export async function getStoreMenu(storeId: string, origin?: { lat: number; lng:
         id: m.id,
         name: m.name,
         price: m.price,
+        imageUrl: m.imageUrl,
         soldOut: m.soldOut,
         options: m.options.map((o) => ({ id: o.id, name: o.name, extraPrice: o.extraPrice })),
       })),

@@ -96,7 +96,21 @@ export default function MenuScreen() {
       </div>
 
       {/* option panel */}
-      <div style={{ flex: 1, minWidth: 0, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 20, padding: 24, display: "flex", flexDirection: "column", boxShadow: "0 4px 16px rgba(20,40,80,.05)" }}>
+      <div style={{ flex: 1, minWidth: 0, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 4px 16px rgba(20,40,80,.05)" }}>
+        {/* menu photo header */}
+        <div
+          className={effectiveSel?.imageUrl ? undefined : "pl-stripe"}
+          style={{
+            height: 168,
+            flex: "0 0 168px",
+            backgroundColor: "#EEF1F4",
+            backgroundImage: effectiveSel?.imageUrl ? `url(${effectiveSel.imageUrl})` : undefined,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+
+        <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", padding: 24 }}>
         <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "#B0B8C1", fontWeight: 600, letterSpacing: ".05em" }}>OPTIONS</div>
         <div style={{ fontSize: 23, fontWeight: 800, color: "#191F28", margin: "8px 0 20px" }}>{effectiveSel?.name}</div>
 
@@ -170,6 +184,7 @@ export default function MenuScreen() {
         >
           주문하기 {cartCount > 0 ? `· ${cartCount}개 ${formatWon(cartTotal)}원` : ""}
           <ArrowRightIcon size={22} color="#fff" strokeWidth={2.4} />
+        </div>
         </div>
       </div>
     </div>
