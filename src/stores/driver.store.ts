@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { CartLine, CarInfo, PlacedOrder, Prefs, ScreenId } from "@/lib/driver/types";
-import { carColorDefs } from "@/lib/driver/config";
+import { carColorDefs, randomCarProfile } from "@/lib/driver/config";
 import { driverApi } from "@/lib/driver/api";
 import { randomNearbyPoint, PANGYO_STATION } from "@/lib/driver/format";
 
@@ -37,6 +37,9 @@ export interface DriverState {
   cart: CartLine[];
   car: CarInfo;
   carColor: number; // index into carColorDefs (settings swatch)
+  /** Whether this device has been given its own vehicle identity (so concurrent
+   *  testers appear as different cars). Set once on first load / manual edit. */
+  carAssigned: boolean;
   prefs: Prefs;
   memo: string;
   placing: boolean;
@@ -82,6 +85,8 @@ export interface DriverState {
   clearPlacedOrder: () => void; // 완료 → 픽업 진행
 
   // ---- settings ----
+  /** Assign this device a unique vehicle identity on first load (no-op after). */
+  ensureCarIdentity: () => void;
   pickColor: (index: number) => void;
   setCar: (patch: Partial<CarInfo>) => void;
   togglePref: (key: keyof Prefs) => void;
@@ -103,6 +108,7 @@ export const useDriverStore = create<DriverState>()(
       cart: [],
       car: DEFAULT_CAR,
       carColor: 4,
+      carAssigned: false,
       prefs: { autoEta: true, pleosPay: true, voiceGuide: false },
       memo: "",
       placing: false,
@@ -241,9 +247,11 @@ export const useDriverStore = create<DriverState>()(
       clearPlacedOrder: () => set({ placedOrder: null }),
 
       // ---- settings ----
+      ensureCarIdentity: () =>
+        set((s) => (s.carAssigned ? {} : { ...randomCarProfile(), carAssigned: true })),
       pickColor: (index) =>
-        set({ carColor: index, car: { ...get().car, color: carColorDefs[index]?.name ?? get().car.color } }),
-      setCar: (patch) => set((s) => ({ car: { ...s.car, ...patch } })),
+        set({ carColor: index, car: { ...get().car, color: carColorDefs[index]?.name ?? get().car.color }, carAssigned: true }),
+      setCar: (patch) => set((s) => ({ car: { ...s.car, ...patch }, carAssigned: true })),
       togglePref: (key) => set((s) => ({ prefs: { ...s.prefs, [key]: !s.prefs[key] } })),
 
       // ---- lifecycle ----
@@ -254,7 +262,7 @@ export const useDriverStore = create<DriverState>()(
       name: "pleos-driver",
       storage: createJSONStorage(() => localStorage),
       // Persist durable vehicle/settings only — not transient nav/cart/order.
-      partialize: (s) => ({ car: s.car, carColor: s.carColor, prefs: s.prefs }),
+      partialize: (s) => ({ car: s.car, carColor: s.carColor, carAssigned: s.carAssigned, prefs: s.prefs }),
     }
   )
 );

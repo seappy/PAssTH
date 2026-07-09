@@ -29,10 +29,14 @@ export default function PassthApp() {
   const back = useDriverStore((s) => s.back);
   const toggleVoice = useDriverStore((s) => s.toggleVoice);
   const ensureDemoDriverLoc = useDriverStore((s) => s.ensureDemoDriverLoc);
+  const ensureCarIdentity = useDriverStore((s) => s.ensureCarIdentity);
 
+  // Client-only (after hydration): seed a demo location + a unique vehicle
+  // identity per device so concurrent testers appear as distinct cars.
   useEffect(() => {
     ensureDemoDriverLoc();
-  }, [ensureDemoDriverLoc]);
+    ensureCarIdentity();
+  }, [ensureDemoDriverLoc, ensureCarIdentity]);
 
   return (
     <div

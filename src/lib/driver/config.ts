@@ -1,4 +1,4 @@
-import type { CarColor, Prefs } from "./types";
+import type { CarColor, CarInfo, Prefs } from "./types";
 
 /** Static UI config for the driver client (NOT data — no hardcoded stores/menus). */
 
@@ -27,3 +27,29 @@ export const prefLabels: { key: keyof Prefs; label: string }[] = [
   { key: "pleosPay", label: "Pleos Pay 자동 결제" },
   { key: "voiceGuide", label: "음성 주문 확인 안내" },
 ];
+
+// Demo car pool — used to give each test device a distinct vehicle identity so
+// concurrent testers show up as different cars on the merchant screen.
+const CAR_MODELS: { model: string; type: string }[] = [
+  { model: "아이오닉 6", type: "승용" },
+  { model: "EV6", type: "SUV" },
+  { model: "모델 3", type: "승용" },
+  { model: "그랜저", type: "승용" },
+  { model: "쏘렌토", type: "SUV" },
+  { model: "G80", type: "승용" },
+  { model: "셀토스", type: "SUV" },
+  { model: "니로 EV", type: "SUV" },
+];
+
+const PLATE_SYLLABLES = "가나다라마거너더러머버서어저고노도로모보소오조구누두루무부수우주허하호".split("");
+
+/** A random, plausible Korean vehicle identity + matching color swatch index. */
+export function randomCarProfile(): { car: CarInfo; carColor: number } {
+  const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  const { model, type } = pick(CAR_MODELS);
+  const carColor = Math.floor(Math.random() * 5); // 0..4 (skip "기타")
+  const two = 10 + Math.floor(Math.random() * 90);
+  const four = 1000 + Math.floor(Math.random() * 9000);
+  const number = `${two}${pick(PLATE_SYLLABLES)} ${four}`;
+  return { car: { number, color: carColorDefs[carColor].name, model, type }, carColor };
+}
