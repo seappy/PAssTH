@@ -28,6 +28,7 @@ export interface OrderSummary {
   /** Set by our proxy once the order is mirrored into the merchant DB. */
   merchant_order_id?: string;
   merchant_order_no?: string;
+  merchant_store_id?: string;
   merchant_store_name?: string;
   bridged?: boolean;
   [k: string]: unknown;

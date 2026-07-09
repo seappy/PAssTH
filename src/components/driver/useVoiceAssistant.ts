@@ -65,8 +65,12 @@ export function useVoiceAssistant() {
         // Order done + mirrored into the merchant DB → drive the SAME 완료/픽업
         // progress screens as a touch order (seed placedOrder, close the panel).
         const os = resp.order_summary;
-        if (os?.bridged && os.merchant_order_id && os.merchant_order_no) {
-          trackPlacedOrder({ id: os.merchant_order_id, orderNo: os.merchant_order_no });
+        if (os?.bridged && os.merchant_order_id && os.merchant_order_no && os.merchant_store_id) {
+          trackPlacedOrder({
+            id: os.merchant_order_id,
+            orderNo: os.merchant_order_no,
+            storeId: os.merchant_store_id,
+          });
           toggleVoice(false);
         }
       } catch {

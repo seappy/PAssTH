@@ -36,6 +36,7 @@ interface OrderSummary {
   eta_minutes?: number;
   merchant_order_id?: string;
   merchant_order_no?: string;
+  merchant_store_id?: string;
   merchant_store_name?: string;
   bridged?: boolean;
   [k: string]: unknown;
@@ -121,7 +122,7 @@ function toMerchantItems(summary: OrderSummary) {
 async function bridgeOrder(
   summary: OrderSummary,
   car?: CarInfo,
-): Promise<{ id: string; orderNo: string; storeName: string } | null> {
+): Promise<{ id: string; orderNo: string; storeId: string; storeName: string } | null> {
   const aiOrderId = summary.order_id;
   if (!aiOrderId || bridgedOrderIds.has(aiOrderId)) return null;
 
@@ -154,7 +155,9 @@ async function bridgeOrder(
       custLat: null,
       custLng: null,
     });
-    return result?.id ? { id: result.id, orderNo: result.orderNo, storeName: store.name } : null;
+    return result?.id
+      ? { id: result.id, orderNo: result.orderNo, storeId: store.id, storeName: store.name }
+      : null;
   } catch {
     bridgedOrderIds.delete(aiOrderId); // allow a later retry
     return null;
@@ -193,6 +196,7 @@ export async function POST(req: Request) {
           ...turn.order_summary,
           merchant_order_id: bridged.id,
           merchant_order_no: bridged.orderNo,
+          merchant_store_id: bridged.storeId,
           merchant_store_name: bridged.storeName,
           bridged: true,
         };
