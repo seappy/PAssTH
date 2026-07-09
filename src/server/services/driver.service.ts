@@ -124,6 +124,38 @@ export async function submitFeedback(orderId: string, rating: number, reviewText
   return { id: orderId, rating };
 }
 
+function summarizeItems(items: { nameSnap: string; quantity: number }[]): string {
+  if (items.length === 0) return "";
+  const first = items[0];
+  if (items.length === 1) return `${first.nameSnap} ${first.quantity}개`;
+  return `${first.nameSnap} 외 ${items.length - 1}개`;
+}
+
+/** Recent orders for this vehicle (driver "주문" tab history). */
+export async function listOrdersByCar(carNumber: string) {
+  const num = carNumber.trim();
+  if (!num) return [];
+  const orders = await prisma.order.findMany({
+    where: { carNumber: num },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+    include: {
+      items: { orderBy: { id: "asc" } },
+      store: { select: { name: true } },
+    },
+  });
+  return orders.map((o) => ({
+    id: o.id,
+    orderNo: o.orderNo,
+    status: o.status,
+    storeId: o.storeId,
+    createdAt: o.createdAt,
+    totalPrice: o.totalPrice,
+    storeName: o.store.name,
+    itemSummary: summarizeItems(o.items),
+  }));
+}
+
 /** Public order lookup for the pickup-tracking screen (by order id). */
 export async function getDriverOrder(id: string) {
   const order = await prisma.order.findUnique({

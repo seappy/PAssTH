@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { trpc } from "@/lib/trpc/client";
 import { useDriverStore } from "@/stores/driver.store";
-import { formatWon } from "@/lib/driver/format";
+import { formatWon, ellipsis } from "@/lib/driver/format";
 import { ArrowRightIcon, MinusIcon, PlusIcon } from "@/components/driver/Icons";
 
 export default function MenuScreen() {
@@ -60,7 +60,9 @@ export default function MenuScreen() {
     <div style={{ height: "100%", display: "flex", gap: 20, padding: "22px 28px" }}>
       {/* menu list */}
       <div style={{ flex: 1.32, minWidth: 0, display: "flex", flexDirection: "column", minHeight: 0 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 12 }}>{data?.store.name}</div>
+        <div style={{ ...ellipsis, fontSize: 15, fontWeight: 700, color: "#8B95A1", marginBottom: 12 }} title={data?.store.name}>
+          {data?.store.name}
+        </div>
         <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", gap: 10, overflow: "auto" }} className="pl-scroll">
           {menus.map((m) => {
             const sel = effectiveSel?.id === m.id;

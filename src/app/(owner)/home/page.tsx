@@ -39,10 +39,12 @@ export default function HomePage() {
     <div className="flex-1 min-h-0 overflow-y-auto pl-scroll bg-canvas">
       <div className="px-5 pt-2 pb-7" style={{ animation: "plFade .25s ease" }}>
         {/* header */}
-        <div className="flex items-center justify-between my-2 mb-[22px]">
-          <StoreSwitcher currentId={storeQ.data?.id} currentName={storeQ.data?.name ?? "매장"} />
+        <div className="flex items-center justify-between gap-3 min-w-0 my-2 mb-[22px]">
+          <div className="min-w-0 flex-1">
+            <StoreSwitcher currentId={storeQ.data?.id} currentName={storeQ.data?.name ?? "매장"} />
+          </div>
           <div
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-bold text-[13px]"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 font-bold text-[13px] flex-none"
             style={
               isOpen
                 ? { background: "#e3f7ef", color: "#0ca678" }

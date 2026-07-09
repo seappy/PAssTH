@@ -31,4 +31,5 @@ export interface CartLine {
 export interface PlacedOrder {
   id: string;
   orderNo: string;
+  storeId: string;
 }

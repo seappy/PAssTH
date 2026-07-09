@@ -8,7 +8,7 @@ export const SCREEN_TITLES: Record<number, string> = {
   3: "메뉴",
   4: "주문 확인",
   5: "주문 완료",
-  6: "픽업 진행",
+  6: "주문",
   7: "설정",
   8: "이용 후기",
 };

@@ -5,6 +5,7 @@ import {
   getDriverOrder,
   getStoreMenu,
   listStoresForDriver,
+  listOrdersByCar,
   placeDriverOrder,
   submitFeedback,
 } from "@/server/services/driver.service";
@@ -76,6 +77,10 @@ export const driverRouter = router({
     if (!order) throw new TRPCError({ code: "NOT_FOUND", message: "주문을 찾을 수 없습니다." });
     return order;
   }),
+
+  orderHistory: publicProcedure
+    .input(z.object({ carNumber: z.string().min(1) }))
+    .query(({ input }) => listOrdersByCar(input.carNumber)),
 
   submitFeedback: publicProcedure
     .input(

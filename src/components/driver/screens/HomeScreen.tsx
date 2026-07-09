@@ -2,7 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { useDriverStore } from "@/stores/driver.store";
-import { formatDistance, formatEta } from "@/lib/driver/format";
+import { formatDistance, formatEta, ellipsis } from "@/lib/driver/format";
 import { ArrowRightIcon, ChevronRightIcon, MicIcon, SearchIcon } from "@/components/driver/Icons";
 
 export default function HomeScreen() {
@@ -97,7 +97,9 @@ export default function HomeScreen() {
                 style={{ display: "flex", alignItems: "center", gap: 14, background: "#fff", border: "1px solid #EDF0F3", borderRadius: 16, padding: "16px 18px", cursor: "pointer", boxShadow: "0 2px 8px rgba(20,40,80,.03)" }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#191F28" }}>{s.name}</div>
+                  <div style={{ ...ellipsis, fontSize: 18, fontWeight: 700, color: "#191F28" }} title={s.name}>
+                    {s.name}
+                  </div>
                   <div style={{ fontSize: 14, color: "#8B95A1" }}>경로에서 {formatDistance(s.distanceM)}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#EAF2FF", borderRadius: 10, padding: "7px 12px" }}>

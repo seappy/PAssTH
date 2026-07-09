@@ -25,6 +25,13 @@ export function drivingEtaSeconds(distanceM: number): number {
   return Math.round(distanceM / AVG_SPEED_MPS);
 }
 
+/** Long store names — use on flex children with minWidth: 0. */
+export const ellipsis = {
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+} as const;
+
 /** 판교역 anchor — used to simulate "the driver's current position" for demo orders. */
 export const PANGYO_STATION = { lat: 37.3947, lng: 127.1112 };
 

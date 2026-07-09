@@ -2,7 +2,7 @@
 
 import { trpc } from "@/lib/trpc/client";
 import { useDriverStore } from "@/stores/driver.store";
-import { congestionLabel, formatDistance, formatEta } from "@/lib/driver/format";
+import { congestionLabel, ellipsis, formatDistance, formatEta } from "@/lib/driver/format";
 
 export default function StoresScreen() {
   const driverLoc = useDriverStore((s) => s.driverLoc);
@@ -83,8 +83,10 @@ export default function StoresScreen() {
                     <span style={{ fontSize: 12, fontWeight: 700, color: cong.color }}>{cong.text}</span>
                   </div>
                 </div>
-                <div style={{ flex: 1, padding: "14px 18px", display: "flex", flexDirection: "column" }}>
-                  <div style={{ fontSize: 21, fontWeight: 700, color: "#191F28" }}>{s.name}</div>
+                <div style={{ flex: 1, padding: "14px 18px", display: "flex", flexDirection: "column", minWidth: 0 }}>
+                  <div style={{ ...ellipsis, fontSize: 21, fontWeight: 700, color: "#191F28" }} title={s.name}>
+                    {s.name}
+                  </div>
                   <div style={{ fontSize: 14, color: "#8B95A1", marginTop: 3 }}>
                     경로에서 <span className="num">{formatDistance(s.distanceM)}</span>
                   </div>

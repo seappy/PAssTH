@@ -43,9 +43,9 @@ export function StoreSwitcher({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5"
+        className="flex items-center gap-1.5 min-w-0 max-w-full"
       >
-        <span className="font-bold text-[22px]">{currentName}</span>
+        <span className="font-bold text-[22px] truncate">{currentName}</span>
         <span className="text-ink-3">
           <IconChevronDown size={20} />
         </span>
