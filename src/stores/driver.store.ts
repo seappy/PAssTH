@@ -75,6 +75,8 @@ export interface DriverState {
   }) => void;
   placeOrder: () => Promise<PlacedOrder | null>; // 주문 확인 → 결제/생성 → 완료
   goToPickup: () => void;
+  /** 픽업 후기 화면 — 주문 컨텍스트를 반드시 붙여서 이동 */
+  goToFeedback: (order: PlacedOrder) => void;
   resumeOrder: (order: PlacedOrder) => void;
   clearPlacedOrder: () => void; // 완료 → 픽업 진행
 
@@ -230,6 +232,8 @@ export const useDriverStore = create<DriverState>()(
       },
 
       goToPickup: () => set({ screen: 6 }),
+
+      goToFeedback: (order) => set({ placedOrder: order, screen: 8 }),
 
       resumeOrder: (order) => set({ placedOrder: order, screen: 6 }),
 

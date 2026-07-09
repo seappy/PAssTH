@@ -17,6 +17,7 @@ const STATUS_TEXT: Record<string, string> = {
 export default function DoneScreen() {
   const placedOrder = useDriverStore((s) => s.placedOrder);
   const goto = useDriverStore((s) => s.goto);
+  const utils = trpc.useUtils();
 
   // Live status — the "주문 완료" card is a confirmation, but it must not look
   // frozen: poll the order, and once the store acts on it (accepted/preparing/…)
@@ -29,8 +30,10 @@ export default function DoneScreen() {
   const status = order?.status ?? "new";
 
   useEffect(() => {
-    if (status !== "new") goto(6); // store acted → pickup tracker
-  }, [status, goto]);
+    if (status === "new") return;
+    void utils.driver.orderHistory.invalidate();
+    goto(6); // store acted → pickup tracker
+  }, [status, goto, utils]);
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 30, textAlign: "center", position: "relative" }}>

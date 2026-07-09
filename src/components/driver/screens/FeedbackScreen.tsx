@@ -21,10 +21,14 @@ export default function FeedbackScreen() {
   });
 
   const active = hover || rating;
-  const canSubmit = rating > 0 && !submit.isPending;
+  const canSubmit = rating > 0 && !!placedOrder && !submit.isPending;
 
   const onSubmit = () => {
-    if (rating === 0 || !placedOrder) return;
+    if (rating === 0) return;
+    if (!placedOrder) {
+      resetOrder();
+      return;
+    }
     submit.mutate({ orderId: placedOrder.id, rating, reviewText: text || undefined });
   };
 
