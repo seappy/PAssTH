@@ -7,7 +7,7 @@ import { randomNearbyPoint, PANGYO_STATION } from "@/lib/driver/format";
 
 /**
  * Driver (in-car) store — single source of truth for the `/drive` client and
- * the shared action layer for touch AND voice (see CLAUDE.md). State is backed
+ * the shared action layer for touch AND voice. State is backed
  * by real data now: `selectedStoreId` + a real `cart`, and `placeOrder` creates
  * an actual order via the driver tRPC API (→ merchant sees it live). No
  * hardcoded stores/menus live here — those come from `trpc.driver.*` queries.
